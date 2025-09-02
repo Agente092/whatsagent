@@ -121,7 +121,9 @@ export async function POST(request: NextRequest) {
         console.warn('⚠️ Backend reload notification failed')
       }
     } catch (syncError) {
-      console.warn('⚠️ No se pudo notificar al backend:', syncError.message)
+      // Corrección de tipo: syncError puede ser de tipo unknown
+      const errorMessage = syncError instanceof Error ? syncError.message : String(syncError);
+      console.warn('⚠️ No se pudo notificar al backend:', errorMessage)
     }
     
     console.log('✅ Configuración guardada:', {
