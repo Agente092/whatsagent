@@ -6,6 +6,12 @@ interface RouteParams {
   }
 }
 
+// Añadimos generateStaticParams para evitar errores con output: 'export'
+export async function generateStaticParams() {
+  // Retornamos un array vacío ya que estas son rutas API, no páginas
+  return []
+}
+
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = params
@@ -20,7 +26,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Llamar al backend para actualizar cliente
-    const response = await fetch(`http://localhost:3001/api/clients/${id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/clients/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -53,7 +59,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = params
     
     // Llamar al backend para eliminar cliente
-    const response = await fetch(`http://localhost:3001/api/clients/${id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/clients/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
