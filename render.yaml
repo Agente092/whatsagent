@@ -64,7 +64,7 @@ services:
     staticPublishPath: ./build
     envVars:
       - key: NEXTAUTH_URL
-        value: https://fitpro-s1ct.onrender.com
+        value: https://whatsagent.onrender.com
       - key: NEXT_PUBLIC_API_URL
         value: https://fitpro-s1ct.onrender.com
 
