@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de APIs - Pool Gemini</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ff9800, #f57c00);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #f44336, #d32f2f);
+        }
+
+        .api-table {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .api-table h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-active {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .status-inactive {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .last-update {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            margin: 50px 0;
+        }
+
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .refresh-btn {
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Monitor de APIs Gemini</h1>
+            <p>Monitoreo en tiempo real del pool de APIs</p>
+        </div>
+
+        <div id="loading" class="loading">
+            Cargando estadísticas...
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>📊 APIs Totales</h3>
+                    <div class="stat-value" id="totalApis">-</div>
+                    <div class="stat-label">APIs configuradas</div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>✅ APIs Activas</h3>
+                    <div class="stat-value" id="activeApis">-</div>
+                    <div class="stat-label">APIs funcionando</div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>📈 Requests Hoy</h3>
+                    <div class="stat-value" id="totalRequests">-</div>
+                    <div class="stat-label">Requests procesados</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="requestsProgress"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>🔄 Requests Disponibles</h3>
+                    <div class="stat-value" id="availableRequests">-</div>
+                    <div class="stat-label">Requests restantes</div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>📊 Utilización</h3>
+                    <div class="stat-value" id="utilizationRate">-</div>
+                    <div class="stat-label">Porcentaje usado</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="utilizationProgress"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>🎯 API Actual</h3>
+                    <div class="stat-value" id="currentApi">-</div>
+                    <div class="stat-label">Índice de API activa</div>
+                </div>
+            </div>
+
+            <div class="api-table">
+                <h3>📋 Detalle de APIs</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>API Key</th>
+                            <th>Estado</th>
+                            <th>Requests Hoy</th>
+                            <th>Errores</th>
+                            <th>Utilización</th>
+                            <th>Último Uso</th>
+                            <th>Restantes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="apiTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="last-update">
+            Última actualización: <span id="lastUpdate">-</span>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadStats()">
+        🔄 Actualizar
+    </button>
+
+    <script>
+        let autoRefreshInterval;
+
+        async function loadStats() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('content').style.display = 'none';
+
+                // Cargar estadísticas generales
+                const statsResponse = await fetch('/api/pool/stats');
+                const statsData = await statsResponse.json();
+
+                if (!statsData.success) {
+                    throw new Error(statsData.message || 'Error al cargar estadísticas');
+                }
+
+                // Cargar estadísticas detalladas
+                const detailedResponse = await fetch('/api/pool/detailed');
+                const detailedData = await detailedResponse.json();
+
+                if (!detailedData.success) {
+                    throw new Error(detailedData.message || 'Error al cargar detalles');
+                }
+
+                // Actualizar estadísticas generales
+                updateGeneralStats(statsData.stats);
+                
+                // Actualizar tabla de APIs
+                updateApiTable(detailedData.detailedStats);
+
+                // Mostrar contenido
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+                // Actualizar timestamp
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function updateGeneralStats(stats) {
+            document.getElementById('totalApis').textContent = stats.apiPool.totalApis;
+            document.getElementById('activeApis').textContent = stats.apiPool.activeApis;
+            document.getElementById('totalRequests').textContent = stats.apiPool.totalRequestsToday;
+            document.getElementById('availableRequests').textContent = stats.apiPool.availableRequests;
+            document.getElementById('utilizationRate').textContent = stats.apiPool.utilizationRate;
+            document.getElementById('currentApi').textContent = stats.apiPool.currentApiIndex;
+
+            // Actualizar barras de progreso
+            const maxRequests = stats.apiPool.totalApis * 45;
+            const requestsPercent = (stats.apiPool.totalRequestsToday / maxRequests) * 100;
+            const utilizationPercent = parseFloat(stats.apiPool.utilizationRate);
+
+            updateProgressBar('requestsProgress', requestsPercent);
+            updateProgressBar('utilizationProgress', utilizationPercent);
+        }
+
+        function updateProgressBar(elementId, percent) {
+            const progressBar = document.getElementById(elementId);
+            progressBar.style.width = `${Math.min(percent, 100)}%`;
+            
+            // Cambiar color según el porcentaje
+            progressBar.className = 'progress-fill';
+            if (percent > 80) {
+                progressBar.classList.add('danger');
+            } else if (percent > 60) {
+                progressBar.classList.add('warning');
+            }
+        }
+
+        function updateApiTable(apis) {
+            const tbody = document.getElementById('apiTableBody');
+            tbody.innerHTML = '';
+
+            apis.forEach(api => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${api.id}</td>
+                    <td><code>${api.apiKey}</code></td>
+                    <td class="${api.status === 'Active' ? 'status-active' : 'status-inactive'}">
+                        ${api.status}
+                    </td>
+                    <td>${api.requestsToday}</td>
+                    <td>${api.errorsToday}</td>
+                    <td>${api.utilizationRate}</td>
+                    <td>${api.lastUsed}</td>
+                    <td>${api.remainingRequests}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Auto-refresh cada 30 segundos
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(loadStats, 30000);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        // Cargar estadísticas al inicio
+        loadStats();
+        startAutoRefresh();
+
+        // Limpiar interval al cerrar la página
+        window.addEventListener('beforeunload', stopAutoRefresh);
+    </script>
+</body>
+</html>
