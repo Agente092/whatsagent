@@ -489,6 +489,16 @@ app.get('/health', async (req, res) => {
   }
 })
 
+// Root route for backend
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'WhatsApp Business Advisor Backend API', 
+    status: 'running',
+    version: '1.0.0',
+    documentation: '/api/health'
+  });
+})
+
 app.get('/api/health', async (req, res) => {
   try {
     const health = await healthCheck.getHealthStatus()
