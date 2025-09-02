@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Configuración para despliegue en Render
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: 'export',
   
   images: {
     domains: ['localhost'],
