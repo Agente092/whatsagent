@@ -1,22 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const authHeader = request.headers.get('authorization')
-    
-    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:3001'}/api/dashboard/stats`, {
-      headers: {
-        'Authorization': authHeader || '',
-      },
+    // Para entornos estáticos, simplemente retornamos un objeto vacío
+    // Las llamadas reales se hacen desde el cliente con el token
+    return NextResponse.json({
+      totalClients: 0,
+      activeClients: 0,
+      expiredClients: 0,
+      totalMessages: 0,
+      todayMessages: 0,
+      expiringToday: 0
     })
-
-    const data = await response.json()
-
-    if (response.ok) {
-      return NextResponse.json(data)
-    } else {
-      return NextResponse.json(data, { status: response.status })
-    }
   } catch (error) {
     console.error('Stats API error:', error)
     return NextResponse.json(
