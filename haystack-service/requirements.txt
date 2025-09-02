@@ -1,0 +1,14 @@
+# Dependencias 100% GRATUITAS para Haystack
+haystack-ai==2.0.0
+fastapi==0.104.1
+uvicorn==0.24.0
+sentence-transformers==2.2.2
+qdrant-client==1.7.0
+transformers==4.35.2
+torch==2.1.1
+numpy==1.24.3
+pandas==2.0.3
+python-multipart==0.0.6
+
+# Todas estas librerías son COMPLETAMENTE GRATUITAS
+# No hay costos ocultos ni límites de uso
