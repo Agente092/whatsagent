@@ -8,15 +8,43 @@ services:
     runtime: node
     plan: starter
     region: oregon
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npx prisma generate && npx prisma db push
     startCommand: node server/index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3001
-      - key: GEMINI_API_KEY
-        sync: false # Configurar manualmente por seguridad
+      - key: GEMINI_API_KEY_1
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_2
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_3
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_4
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_5
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_6
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_7
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_8
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_9
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_10
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_11
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_12
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_13
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_14
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_15
+        sync: false # Configurar manualmente
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: ADMIN_EMAIL
@@ -36,9 +64,9 @@ services:
     staticPublishPath: ./out
     envVars:
       - key: NEXTAUTH_URL
-        value: https://whatsapp-advisor-backend.onrender.com
+        value: https://fitpro-s1ct.onrender.com
       - key: NEXT_PUBLIC_API_URL
-        value: https://whatsapp-advisor-backend.onrender.com
+        value: https://fitpro-s1ct.onrender.com
 
 # Database (Opcional - Solo si quieres PostgreSQL en el futuro)
 # databases:
