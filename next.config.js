@@ -10,7 +10,7 @@ const nextConfig = {
   
   // Variables de entorno públicas
   env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },
   
