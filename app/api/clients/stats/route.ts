@@ -2,21 +2,14 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    // Llamar al backend para obtener estadísticas
-    const response = await fetch('http://localhost:3001/api/clients/stats', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    // Para el build estático retornamos datos vacíos
+    // La llamada real se hará desde el cliente
+    return NextResponse.json({
+      total: 0,
+      active: 0,
+      expired: 0,
+      new: 0
     })
-
-    if (!response.ok) {
-      throw new Error('Error al obtener estadísticas del backend')
-    }
-
-    const data = await response.json()
-    return NextResponse.json(data)
-    
   } catch (error) {
     console.error('Error in /api/clients/stats:', error)
     return NextResponse.json(
