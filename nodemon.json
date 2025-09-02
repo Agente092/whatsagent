@@ -1,0 +1,20 @@
+{
+  "watch": ["server/**/*.js"],
+  "ignore": [
+    "auth_info_baileys/**/*",
+    "server/sessions/**/*",
+    "server/*.json",
+    "*.json",
+    "pre-key-*.json",
+    "creds.json",
+    "session-*.json",
+    "app-state-sync-key-*.json",
+    "app-state-sync-version.json",
+    "sender-key-*.json",
+    "sender-key-memory.json",
+    "node_modules/**/*",
+    "*.log"
+  ],
+  "ext": "js",
+  "delay": 3000
+}
