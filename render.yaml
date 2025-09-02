@@ -56,13 +56,17 @@ services:
       - key: DATABASE_URL
         value: "file:./database.db"  # SQLite por defecto
 
-  # Frontend Service (Static Site)
+  # Frontend Service (Web Service)
   - type: web
-    name: whatsapp-advisor-frontend
+    name: whatsagent
     runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
       - key: NEXTAUTH_URL
         value: https://whatsagent.onrender.com
       - key: NEXT_PUBLIC_API_URL
