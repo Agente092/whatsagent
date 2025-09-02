@@ -97,3 +97,4 @@ server/data/*.json
 # =================================
 *.backup
 *.bak
+proyecto-empresas(backup)/
