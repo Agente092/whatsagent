@@ -61,7 +61,7 @@ services:
     name: whatsapp-advisor-frontend
     runtime: static
     buildCommand: npm install && npm run build
-    staticPublishPath: ./build
+    staticPublishPath: ./out
     envVars:
       - key: NEXTAUTH_URL
         value: https://whatsagent.onrender.com
