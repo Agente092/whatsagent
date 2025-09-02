@@ -6,12 +6,6 @@ interface RouteParams {
   }
 }
 
-// Añadimos generateStaticParams para evitar errores con output: 'export'
-export async function generateStaticParams() {
-  // Retornamos un array vacío ya que estas son rutas API, no páginas
-  return []
-}
-
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = params
