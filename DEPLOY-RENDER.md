@@ -8,7 +8,7 @@ Antes de desplegar, asegúrate de tener:
 
 ✅ **Cuenta de GitHub** con tu código subido  
 ✅ **Cuenta en Render.com** (gratuita o pagada)  
-✅ **API Key de Gemini AI** válida  
+✅ **API Keys de Gemini AI** válidas (múltiples para rotación)  
 ✅ **Archivos de configuración** completados  
 
 ---
@@ -18,8 +18,12 @@ Antes de desplegar, asegúrate de tener:
 ### 1. **Preparar el Repositorio en GitHub**
 
 ```bash
-# Inicializar Git (si no está inicializado)
-git init
+# Eliminar carpeta de backup si existe
+rm -rf proyecto-empresas(backup)/  # En sistemas Unix
+# En Windows: Eliminar manualmente la carpeta
+
+# Verificar que el repositorio esté limpio
+git status
 
 # Agregar archivos
 git add .
@@ -34,55 +38,48 @@ git remote add origin https://github.com/TU-USUARIO/TU-REPOSITORIO.git
 git push -u origin main
 ```
 
-### 2. **Configurar Base de Datos en Render**
+### 2. **Despliegue Automático con Blueprint**
+
+Render soporta despliegue automático usando el archivo `render.yaml` incluido en el proyecto:
 
 1. **Accede a Render Dashboard**
-2. **Click en "New +"** → **"PostgreSQL"**
-3. **Configura la base de datos:**
-   - Name: `whatsapp-advisor-db`
-   - Database: `whatsapp_advisor`
-   - User: `advisor_user`
-   - Plan: `Starter` (gratuito)
+2. **Click en "New +"** → **"Web Service"**
+3. **Conecta tu repositorio de GitHub**
+4. **Render detectará automáticamente el archivo `render.yaml`**
+5. **Confirma la configuración y haz deploy**
 
-4. **Guarda la DATABASE_URL** que Render te proporcione
+El blueprint creará automáticamente:
+- **Backend Service**: `whatsapp-advisor-backend` en puerto 3001
+- **Frontend Service**: `whatsapp-advisor-frontend` en puerto 3000
 
-### 3. **Crear Web Service en Render**
+### 3. **Configurar Variables de Entorno**
 
-1. **Click en "New +"** → **"Web Service"**
-2. **Conecta tu repositorio de GitHub**
-3. **Configura el servicio:**
-   - Name: `whatsapp-business-advisor`
-   - Root Directory: `.` (raíz)
-   - Environment: `Node`
-   - Region: `US East` (recomendado)
-   - Branch: `main`
-   - Build Command: `npm install && npm run build && npx prisma generate`
-   - Start Command: `npm run start:production`
+En la sección **Environment** de cada servicio, configura las variables:
 
-### 4. **Configurar Variables de Entorno**
-
-En la sección **Environment** de tu Web Service, agrega:
-
+**Para el Backend (`whatsapp-advisor-backend`):**
 ```env
 NODE_ENV=production
 PORT=3001
-DATABASE_URL=[URL proporcionada por Render PostgreSQL]
-GEMINI_API_KEY=AIzaSyCwhRvWvFOfJRMk9qQM2U1fDZaa7_HiB_A
-NEXTAUTH_SECRET=[Render generará esto automáticamente]
-NEXTAUTH_URL=https://tu-app-name.onrender.com
+DATABASE_URL=file:./database.db
+GEMINI_API_KEY_1=tu_api_key_1
+GEMINI_API_KEY_2=tu_api_key_2
+# ... hasta GEMINI_API_KEY_15
 ADMIN_EMAIL=admin@advisor.com
 ADMIN_PASSWORD=TuPasswordSeguro123!
+NEXTAUTH_SECRET=[Render generará esto automáticamente o configúralo manualmente]
 LOG_LEVEL=info
 ```
 
+**Para el Frontend (`whatsapp-advisor-frontend`):**
+```env
+NEXTAUTH_URL=https://whatsapp-advisor-frontend.onrender.com
+NEXT_PUBLIC_API_URL=https://whatsapp-advisor-backend.onrender.com
+```
+
 **⚠️ IMPORTANTE:**
-- Reemplaza `tu-app-name` con el nombre real de tu app en Render
+- Reemplaza las API Keys de Gemini con tus claves válidas
 - Cambia `ADMIN_PASSWORD` por una contraseña segura
-- Asegúrate de que `GEMINI_API_KEY` sea válida
-
-### 5. **Configurar Health Check**
-
-En **Advanced** → **Health Check Path**: `/health`
+- Asegúrate de que todas las 15 API Keys estén configuradas
 
 ---
 
@@ -90,16 +87,12 @@ En **Advanced** → **Health Check Path**: `/health`
 
 Después del primer despliegue:
 
-1. **Accede a tu Web Service en Render**
-2. **Ve a la pestaña "Shell"**
-3. **Ejecuta los siguientes comandos:**
+1. **Accede al Shell del Backend Service en Render**
+2. **Ejecuta los siguientes comandos:**
 
 ```bash
-# Aplicar migraciones de Prisma
-npx prisma db push
-
-# Verificar conexión
-npx prisma db seed
+# Inicializar base de datos
+npm run db:init
 ```
 
 ---
@@ -107,12 +100,13 @@ npx prisma db seed
 ## ⚙️ **CONFIGURACIONES ADICIONALES**
 
 ### **SSL/HTTPS** ✅
-Render proporciona SSL automáticamente. Tu app será accesible en:
-- `https://tu-app-name.onrender.com`
+Render proporciona SSL automáticamente. Tus servicios serán accesibles en:
+- **Frontend**: `https://whatsapp-advisor-frontend.onrender.com`
+- **Backend**: `https://whatsapp-advisor-backend.onrender.com`
 
 ### **Custom Domain** (Opcional)
 Si tienes un dominio propio:
-1. Ve a **Settings** → **Custom Domains**
+1. Ve a **Settings** → **Custom Domains** de cada servicio
 2. Agrega tu dominio
 3. Configura los DNS según las instrucciones de Render
 
@@ -127,7 +121,7 @@ Para mayor rendimiento:
 
 ### **Conectar WhatsApp Bot:**
 
-1. **Accede a tu aplicación:** `https://tu-app-name.onrender.com`
+1. **Accede a tu aplicación:** `https://whatsapp-advisor-frontend.onrender.com`
 2. **Inicia sesión** con las credenciales de admin
 3. **Ve a la sección Bot**
 4. **Click en "Conectar WhatsApp"**
@@ -145,15 +139,15 @@ Para mayor rendimiento:
 ## 📊 **MONITOREO Y LOGS**
 
 ### **Ver Logs en Tiempo Real:**
-1. En tu Web Service, ve a **Logs**
+1. En cada servicio, ve a **Logs**
 2. Filtra por nivel: `Info`, `Warning`, `Error`
 
 ### **Health Check:**
-- URL: `https://tu-app-name.onrender.com/health`
+- URL del Backend: `https://whatsapp-advisor-backend.onrender.com/health`
 - Debe retornar: `{"status": "ok"}`
 
 ### **API Stats:**
-- URL: `https://tu-app-name.onrender.com/api/pool/stats`
+- URL del Backend: `https://whatsapp-advisor-backend.onrender.com/api/pool/stats`
 
 ---
 
@@ -171,17 +165,17 @@ npx prisma generate
 ```bash
 # Verificar conexión
 npx prisma db push
-npx prisma studio
+npm run db:init
 ```
 
 ### **WhatsApp No Conecta:**
-1. Verificar que el servicio esté ejecutándose
+1. Verificar que el backend esté ejecutándose
 2. Limpiar sesión y reconectar
 3. Revisar logs para errores específicos
 
 ### **Límites de API Gemini:**
-- **Plan Gratuito**: 15 requests/minuto
-- **Solución**: Implementar rate limiting o upgrade a plan Pro
+- **Plan Gratuito**: 15 requests/minuto por API key
+- **Solución**: Implementar rotación de APIs o upgrade a plan Pro
 
 ---
 
@@ -197,7 +191,7 @@ git push origin main
 
 ### **Rollback:**
 En Render Dashboard:
-1. Ve a **Deploys**
+1. Ve a **Deploys** de cada servicio
 2. Click en deploy anterior
 3. **Redeploy**
 
@@ -207,13 +201,12 @@ En Render Dashboard:
 
 Antes de considerar el despliegue completo:
 
-- [ ] ✅ Web Service desplegado correctamente
-- [ ] ✅ Base de datos PostgreSQL funcionando
+- [ ] ✅ Web Services desplegados correctamente
 - [ ] ✅ Variables de entorno configuradas
 - [ ] ✅ Health check responde correctamente
 - [ ] ✅ Frontend accesible (login funciona)
 - [ ] ✅ WhatsApp bot se puede conectar
-- [ ] ✅ API de Gemini responde
+- [ ] ✅ APIs de Gemini responden
 - [ ] ✅ Logs sin errores críticos
 - [ ] ✅ Panel de administración funcional
 
@@ -223,10 +216,11 @@ Antes de considerar el despliegue completo:
 
 Una vez desplegado:
 
-- **Aplicación Principal**: `https://tu-app-name.onrender.com`
-- **Health Check**: `https://tu-app-name.onrender.com/health`
-- **API Stats**: `https://tu-app-name.onrender.com/api/pool/stats`
-- **Dashboard Admin**: `https://tu-app-name.onrender.com/dashboard`
+- **Frontend Principal**: `https://whatsapp-advisor-frontend.onrender.com`
+- **Backend API**: `https://whatsapp-advisor-backend.onrender.com`
+- **Health Check**: `https://whatsapp-advisor-backend.onrender.com/health`
+- **API Stats**: `https://whatsapp-advisor-backend.onrender.com/api/pool/stats`
+- **Dashboard Admin**: `https://whatsapp-advisor-frontend.onrender.com/dashboard`
 
 ---
 
