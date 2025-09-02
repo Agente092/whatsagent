@@ -60,8 +60,8 @@ services:
   - type: web
     name: whatsapp-advisor-frontend
     runtime: static
-    buildCommand: npm install && npm run build && npm run export
-    staticPublishPath: ./out
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
     envVars:
       - key: NEXTAUTH_URL
         value: https://fitpro-s1ct.onrender.com
