@@ -1,0 +1,48 @@
+# Render Blueprint para despliegue automático
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Backend Service
+  - type: web
+    name: whatsapp-advisor-backend
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npx prisma generate
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: GEMINI_API_KEY
+        sync: false # Configurar manualmente por seguridad
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@advisor.com
+      - key: ADMIN_PASSWORD
+        sync: false # Configurar manualmente
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        value: "file:./database.db"  # SQLite por defecto
+
+  # Frontend Service (Static Site)
+  - type: web
+    name: whatsapp-advisor-frontend
+    runtime: static
+    buildCommand: npm install && npm run build && npm run export
+    staticPublishPath: ./out
+    envVars:
+      - key: NEXTAUTH_URL
+        value: https://whatsapp-advisor-backend.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        value: https://whatsapp-advisor-backend.onrender.com
+
+# Database (Opcional - Solo si quieres PostgreSQL en el futuro)
+# databases:
+#   - name: whatsapp-advisor-db
+#     databaseName: whatsapp_advisor
+#     user: advisor_user
+#     plan: starter
