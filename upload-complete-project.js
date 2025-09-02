@@ -73,6 +73,11 @@ class GitHubBulkUploader {
       return true;
     }
     
+    // SIEMPRE excluir el directorio de backup
+    if (normalizedPath.startsWith('proyecto-empresas(backup)/') || normalizedPath === 'proyecto-empresas(backup)') {
+      return true;
+    }
+    
     return excludePatterns.some(pattern => {
       // Patrones específicos del .gitignore
       if (pattern.includes('node_modules')) return normalizedPath.includes('node_modules');
@@ -103,8 +108,14 @@ class GitHubBulkUploader {
         const relativePath = path.relative(__dirname, fullPath);
         
         // Excluir explícitamente directorios .git
-        if (item === '.git' || relativePath.includes('\.git\\') || relativePath.includes('/.git/')) {
+        if (item === '.git' || relativePath.includes('.git\\') || relativePath.includes('/.git/')) {
           console.log(`🚫 Saltando directorio Git: ${relativePath}`);
+          continue;
+        }
+        
+        // Excluir explícitamente el directorio de backup
+        if (item === 'proyecto-empresas(backup)' || relativePath.startsWith('proyecto-empresas(backup)')) {
+          console.log(`🚫 Saltando directorio de backup: ${relativePath}`);
           continue;
         }
         
