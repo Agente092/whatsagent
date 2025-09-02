@@ -14,7 +14,7 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },
   
-  // Configuración para exportación estática (si es necesaria)
+  // Configuración para exportación estática
   trailingSlash: true,
   
   // Optimizaciones para producción
@@ -32,6 +32,9 @@ const nextConfig = {
     }
     return [];
   },
+  
+  // Configuración para exportación estática en producción
+  distDir: 'build',
 }
 
 module.exports = nextConfig
