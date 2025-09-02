@@ -79,7 +79,8 @@ const corsOptions = {
       'http://localhost:3000',
       'http://localhost:3001',
       process.env.NEXTAUTH_URL,
-      'https://your-app-name.onrender.com' // Reemplazar con tu URL real
+      'https://whatsagent.onrender.com',
+      'https://fitpro-s1ct.onrender.com'
     ].filter(Boolean)
     
     if (allowedOrigins.indexOf(origin) !== -1) {
