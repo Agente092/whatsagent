@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET() {
   try {
     // Llamar al backend para obtener clientes
-    const response = await fetch('http://localhost:3001/api/clients', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/clients`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Enviar datos al backend
-    const response = await fetch('http://localhost:3001/api/clients', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/clients`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
