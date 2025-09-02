@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { QrCode, Smartphone, Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import { io } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 
 export default function BotStatusPage() {
-  const [socket, setSocket] = useState(null)
+  const [socket, setSocket] = useState<Socket | null>(null)
   const [whatsappStatus, setWhatsappStatus] = useState('disconnected')
   const [qrCode, setQrCode] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
