@@ -1,0 +1,20 @@
+{
+  "company_name": "GHS",
+  "company_description": "Especialistas en estrategias empresariales",
+  "representative_name": "Luis G.",
+  "representative_role": "Asesor Empresarial",
+  "greeting_style": "dynamic",
+  "response_tone": "professional",
+  "business_hours_start": "09:00",
+  "business_hours_end": "18:00",
+  "auto_responses": true,
+  "welcome_message": "",
+  "fallback_message": "Disculpa, estoy experimentando dificultades técnicas. ¿Podrías reformular tu consulta?",
+  "api_rotation": true,
+  "max_apis_to_use": 15,
+  "client_recognition": true,
+  "personalized_greetings": true,
+  "save_conversation_history": true,
+  "response_delay_simulation": false,
+  "typing_indicator": true
+}
