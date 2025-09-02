@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración para despliegue en Render
+  // Configuración para despliegue en Render - Server-side rendering
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   
   images: {
