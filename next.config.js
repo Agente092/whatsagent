@@ -32,9 +32,6 @@ const nextConfig = {
     }
     return [];
   },
-  
-  // Configuración para exportación estática en producción
-  distDir: 'build',
 }
 
 module.exports = nextConfig
