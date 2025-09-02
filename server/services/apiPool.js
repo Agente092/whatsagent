@@ -3,24 +3,8 @@ const logger = require('./logger')
 
 class ApiPool {
   constructor() {
-    // Pool de APIs de Gemini - AMPLIADO A 15 APIs COMO WHATSAPP-AGENT
-    this.apiKeys = [
-      'AIzaSyAPFixQAWKi2M7qDjH1n2QuHH7BeAjyTQ8',
-      'AIzaSyCwhRvWvFOfJRMk9qQM2U1fDZaa7_HiB_AA',
-      'AIzaSyCWQsPEq-D3nJZFdMgsTlxDOweTzPKOTwIA',
-      'AIzaSyDQdZu9BKU0wthWB5MrLu6jlFqJBjobpPU',
-      'AIzaSyDNmqQipY9twB5jLEWrMJHQkKRS0_5bhjw',
-      'AIzaSyCpkO5REjtpZhXeMpvIhgh8oY_2X2ABIro',
-      'AIzaSyARYabiYzJZ8DfDNJeq8wdjy1T_3UGFAXu',
-      'AIzaSyBcYsacd3Ml2wlduHZRzkFzHLtgOcylOhQ',
-      'AIzaSyD9zOtMS8Xiymc6AyusRUvhwJh3XvarsscA',
-      'AIzaSyB6vyb1cb7D6u9-ef-y4KZc_8Y82kaWC2M',
-      'AIzaSyDKWAZ0FkDd0_5DmGhytiu-lg0mUOdHsXg',
-      'AIzaSyAlUIsKYBxfZ4RH3aimq7XBWQtlGcG1fjo', // API Key 12 (nueva)
-      'AIzaSyCFR2kApUeCGSWOf_tkcLe1XH4qgKjDVJ0', // API Key 13 (nueva)
-      'AIzaSyBEDtNY0MAWLsHcSn4rObEM_Cp7VdKwDjU', // API Key 14 (nueva)
-      'AIzaSyD9zOtMS8Xiymc6AyusRUvhwJh3Xvarssc'  // API Key 15 (nueva)
-    ]
+    // Pool de APIs de Gemini - AMPLIADO A 15 APIs desde variables de entorno
+    this.apiKeys = this.loadApiKeysFromEnv()
     
     this.currentIndex = 0
     this.apiInstances = []
@@ -31,6 +15,48 @@ class ApiPool {
     
     // Resetear estadísticas diariamente
     this.resetStatsDaily()
+  }
+
+  // Cargar API keys desde variables de entorno
+  loadApiKeysFromEnv() {
+    const apiKeys = []
+    
+    // Cargar las 15 API keys desde variables de entorno
+    for (let i = 1; i <= 15; i++) {
+      const envVar = `GEMINI_API_KEY_${i}`
+      const apiKey = process.env[envVar]
+      
+      if (apiKey) {
+        apiKeys.push(apiKey)
+      } else {
+        logger.warn(`⚠️ API Key ${i} no encontrada en variables de entorno (${envVar})`)
+      }
+    }
+    
+    // Si no se encontraron API keys en variables de entorno, usar las predeterminadas
+    if (apiKeys.length === 0) {
+      logger.warn('⚠️ No se encontraron API keys en variables de entorno, usando valores predeterminados')
+      return [
+        'AIzaSyAPFixQAWKi2M7qDjH1n2QuHH7BeAjyTQ8',
+        'AIzaSyCwhRvWvFOfJRMk9qQM2U1fDZaa7_HiB_AA',
+        'AIzaSyCWQsPEq-D3nJZFdMgsTlxDOweTzPKOTwIA',
+        'AIzaSyDQdZu9BKU0wthWB5MrLu6jlFqJBjobpPU',
+        'AIzaSyDNmqQipY9twB5jLEWrMJHQkKRS0_5bhjw',
+        'AIzaSyCpkO5REjtpZhXeMpvIhgh8oY_2X2ABIro',
+        'AIzaSyARYabiYzJZ8DfDNJeq8wdjy1T_3UGFAXu',
+        'AIzaSyBcYsacd3Ml2wlduHZRzkFzHLtgOcylOhQ',
+        'AIzaSyD9zOtMS8Xiymc6AyusRUvhwJh3XvarsscA',
+        'AIzaSyB6vyb1cb7D6u9-ef-y4KZc_8Y82kaWC2M',
+        'AIzaSyDKWAZ0FkDd0_5DmGhytiu-lg0mUOdHsXg',
+        'AIzaSyAlUIsKYBxfZ4RH3aimq7XBWQtlGcG1fjo',
+        'AIzaSyCFR2kApUeCGSWOf_tkcLe1XH4qgKjDVJ0',
+        'AIzaSyBEDtNY0MAWLsHcSn4rObEM_Cp7VdKwDjU',
+        'AIzaSyD9zOtMS8Xiymc6AyusRUvhwJh3Xvarssc'
+      ]
+    }
+    
+    logger.info(`✅ Cargadas ${apiKeys.length} API keys desde variables de entorno`)
+    return apiKeys
   }
 
   // Inicializar todas las instancias de API
