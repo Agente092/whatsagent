@@ -68,7 +68,7 @@ services:
       - key: PORT
         value: 3000
       - key: NEXTAUTH_URL
-        value: https://whatsapp-sales-agent-backend.onrender.com
+        value: https://grupohibrida.onrender.com
       - key: NEXT_PUBLIC_API_URL
         value: https://fitpro-s1ct.onrender.com
 
