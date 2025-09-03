@@ -672,7 +672,7 @@ app.get('/api/clients-old', authenticateToken, async (req, res) => {
   }
 })
 
-app.post('/api/clients', authenticateToken, async (req, res) => {
+app.post('/api/clients', async (req, res) => {
   try {
     const { name, phone, expiryDate } = req.body
 
@@ -730,6 +730,50 @@ app.patch('/api/clients/:id/toggle', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Toggle client error:', error)
     res.status(500).json({ message: 'Error al cambiar estado del cliente' })
+  }
+})
+
+app.post('/api/clients/update', async (req, res) => {
+  try {
+    const { phone, name } = req.body
+    
+    if (!phone || !name) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Teléfono y nombre son requeridos' 
+      })
+    }
+    
+    const client = await prisma.client.findUnique({
+      where: { phone }
+    })
+    
+    if (client) {
+      const updatedClient = await prisma.client.update({
+        where: { phone },
+        data: { 
+          name,
+          lastActivity: new Date()
+        }
+      })
+      
+      res.json({ 
+        success: true, 
+        message: 'Cliente actualizado exitosamente',
+        client: updatedClient
+      })
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        message: 'Cliente no encontrado' 
+      })
+    }
+  } catch (error) {
+    console.error('Client update error:', error)
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al actualizar cliente' 
+    })
   }
 })
 
@@ -978,6 +1022,19 @@ app.put('/api/clients/:id', async (req, res) => {
     })
     
     if (client) {
+      // Verificar si el nuevo teléfono ya existe para otro cliente
+      const existingClient = await prisma.client.findUnique({
+        where: { phone }
+      })
+      
+      if (existingClient && existingClient.id !== id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe un cliente con este número de teléfono',
+          field: 'phone'
+        })
+      }
+      
       const updatedClient = await prisma.client.update({
         where: { id },
         data: { 
