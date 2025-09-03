@@ -27,16 +27,25 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      throw new Error('Error al promocionar cliente en el backend')
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Error al promocionar cliente en el backend')
     }
 
     const data = await response.json()
     return NextResponse.json(data)
     
-  } catch (error) {
+  } catch (error: unknown) {
+    // Manejar correctamente el tipo unknown
+    let errorMessage = 'Error al promocionar cliente';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
     console.error('Error in /api/clients/promote:', error)
     return NextResponse.json(
-      { error: 'Error al promocionar cliente' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
