@@ -20,10 +20,18 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json(data, { status: response.status })
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    // Manejar correctamente el tipo unknown
+    let errorMessage = 'Error interno del servidor';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
     console.error('Login API error:', error)
     return NextResponse.json(
-      { message: 'Error interno del servidor' },
+      { message: errorMessage },
       { status: 500 }
     )
   }
