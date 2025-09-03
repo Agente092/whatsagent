@@ -17,7 +17,7 @@ export default function BotStatusPage() {
 
   useEffect(() => {
     // Connect to Socket.IO server
-    const newSocket = io('http://localhost:3001')
+    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
     setSocket(newSocket)
 
     // Listen to WhatsApp events
