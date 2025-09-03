@@ -60,10 +60,18 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
     
-  } catch (error) {
+  } catch (error: unknown) {
+    // Manejar correctamente el tipo unknown
+    let errorMessage = 'Error al crear cliente';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
     console.error('Error in POST /api/clients:', error)
     return NextResponse.json(
-      { error: error.message || 'Error al crear cliente' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
