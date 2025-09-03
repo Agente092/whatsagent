@@ -56,7 +56,7 @@ services:
       - key: DATABASE_URL
         value: "file:./database.db"  # SQLite por defecto
 
-  # Frontend Service (Web Service)
+  # Frontend Service (Web Service - CORREGIDO)
   - type: web
     name: whatsagent
     runtime: node
@@ -68,9 +68,9 @@ services:
       - key: PORT
         value: 3000
       - key: NEXTAUTH_URL
-        value: https://whatsagent.onrender.com
+        value: https://whatsapp-sales-agent-backend.onrender.com
       - key: NEXT_PUBLIC_API_URL
-        value: https://whatsapp-advisor-backend.onrender.com
+        value: https://fitpro-s1ct.onrender.com
 
 # Database (Opcional - Solo si quieres PostgreSQL en el futuro)
 # databases:
