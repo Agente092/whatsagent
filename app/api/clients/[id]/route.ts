@@ -19,11 +19,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Obtener token de la cookie o header
+    const token = request.cookies.get('token')?.value || 
+                  request.headers.get('authorization')?.replace('Bearer ', '') || 
+                  '';
+    
     // Llamar al backend para actualizar cliente
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/clients/${id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ name, phone })
     })
@@ -52,11 +58,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = params
     
+    // Obtener token de la cookie o header
+    const token = request.cookies.get('token')?.value || 
+                  request.headers.get('authorization')?.replace('Bearer ', '') || 
+                  '';
+    
     // Llamar al backend para eliminar cliente
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/clients/${id}`, {
       method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
     })
 
