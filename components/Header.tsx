@@ -22,7 +22,7 @@ export default function Header() {
 
   useEffect(() => {
     // Connect to Socket.IO server
-    const socket = io('http://localhost:3001')
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
 
     // Listen to WhatsApp status events
     socket.on('whatsapp-status', (status: string) => {
