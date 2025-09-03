@@ -35,7 +35,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
+      const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || 'Error al actualizar cliente en el backend' },
         { status: response.status }
@@ -45,10 +45,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const data = await response.json()
     return NextResponse.json(data)
     
-  } catch (error) {
+  } catch (error: unknown) {
+    // Manejar correctamente el tipo unknown
+    let errorMessage = 'Error al actualizar cliente';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
     console.error('Error in PUT /api/clients/[id]:', error)
     return NextResponse.json(
-      { error: 'Error al actualizar cliente' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
@@ -73,7 +81,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
+      const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: errorData.message || 'Error al eliminar cliente en el backend' },
         { status: response.status }
@@ -83,10 +91,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const data = await response.json()
     return NextResponse.json(data)
     
-  } catch (error) {
+  } catch (error: unknown) {
+    // Manejar correctamente el tipo unknown
+    let errorMessage = 'Error al eliminar cliente';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
     console.error('Error in DELETE /api/clients/[id]:', error)
     return NextResponse.json(
-      { error: 'Error al eliminar cliente' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
