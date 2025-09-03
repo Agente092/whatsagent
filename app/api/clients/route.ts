@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      throw new Error('Error al crear cliente en el backend')
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Backend client creation error:', errorData);
+      throw new Error(errorData.message || 'Error al crear cliente en el backend')
     }
 
     const data = await response.json()
@@ -61,7 +63,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in POST /api/clients:', error)
     return NextResponse.json(
-      { error: 'Error al crear cliente' },
+      { error: error.message || 'Error al crear cliente' },
       { status: 500 }
     )
   }
