@@ -80,7 +80,8 @@ const corsOptions = {
       'http://localhost:3001',
       process.env.NEXTAUTH_URL,
       'https://whatsagent.onrender.com',
-      'https://fitpro-s1ct.onrender.com'
+      'https://fitpro-s1ct.onrender.com',
+      'https://grupohibrida.onrender.com'
     ].filter(Boolean)
     
     if (allowedOrigins.indexOf(origin) !== -1) {
