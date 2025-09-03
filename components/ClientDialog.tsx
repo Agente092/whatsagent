@@ -92,7 +92,7 @@ export default function ClientDialog({ isOpen, onClose, onClientAdded, client }:
         onClientAdded()
         handleClose()
       } else {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}));
         if (errorData.field) {
           setErrors({ [errorData.field]: errorData.message })
         } else {
