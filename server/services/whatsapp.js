@@ -11,10 +11,11 @@ class WhatsAppService extends EventEmitter {
     this.isConnected = false
     this.lastSeen = null
     this.connectionAttempts = 0
-    this.maxRetries = 8 // 🔧 AUMENTADO: Más intentos para mayor robustez
+    this.maxRetries = 5 // 🔧 REDUCIDO: Más conservador como Proyecto-ventas
     this.timeoutRetries = 3 // 🔧 NUEVO: Intentos específicos para timeouts
-    this.reconnectionDelay = 5000 // 🔧 NUEVO: Delay base configurable
+    this.reconnectionDelay = 3000 // 🔧 NUEVO: Delay base como Proyecto-ventas
     this.isReconnecting = false // 🔧 NUEVO: Flag para evitar reconexiones múltiples
+    this.lastDisconnectReason = null // 🔧 NUEVO: Tracking de última razón de desconexión
   }
 
   async connect() {
@@ -59,7 +60,7 @@ class WhatsAppService extends EventEmitter {
         retryRequestDelayMs: 1000, // 1 segundo entre reintentos
         maxMsgRetryCount: 5, // Máximo 5 reintentos por mensaje
         // 🔧 NUEVO: Configuraciones específicas para producción
-        browser: ['WhatsApp Business Advisor', 'Chrome', '118.0.0.0'],
+        browser: ['WhatsApp Business Advisor', 'Chrome', '118.0.0'],
         version: [2, 2412, 54],
         logger: {
           level: 'silent',
@@ -127,16 +128,19 @@ class WhatsAppService extends EventEmitter {
                 this.emit('whatsapp-status', 'error')
               }
             }, 2000)
-          // 🔧 NUEVO: Manejar código 405 y otros errores de autenticación
+          // 🔧 NUEVO: Manejar código 405 y otros errores de autenticación COMO PROYECTO-VENTAS
           } else if (statusCode === DisconnectReason.badSession || statusCode === 405 || statusCode === DisconnectReason.connectionClosed) {
-            console.log('🚨 Bad session/405 error detected - Force clearing session')
+            console.log('🚨 Bad session/405 error detected - Force clearing session (Proyecto-ventas style)')
             this.isConnected = false
             this.connectionAttempts = 0
             this.isReconnecting = false // 🔧 CRÍTICO: Limpiar flag de reconexión
+            this.lastDisconnectReason = statusCode
             this.emit('whatsapp-status', 'session-invalid')
             
+            // Auto-limpiar sesión después de un momento (estilo Proyecto-ventas)
             setTimeout(async () => {
               try {
+                console.log('🧩 Auto-clearing session due to auth error...')
                 await this.clearSession()
                 console.log('✅ Session cleared automatically due to auth error')
                 this.emit('whatsapp-status', 'ready-to-connect')
@@ -146,49 +150,34 @@ class WhatsAppService extends EventEmitter {
               }
             }, 2000)
           } else if (statusCode === DisconnectReason.connectionReplaced) {
-            console.log('🚨 CONNECTION REPLACED - Multiple instances detected')
+            console.log('🚨 CONNECTION REPLACED - Multiple instances detected (Proyecto-ventas handling)')
             console.log('⚠️ Stopping auto-reconnections to prevent infinite loop')
             this.isConnected = false
             this.connectionAttempts = 0
+            this.isReconnecting = false // 🔧 CRÍTICO: Evitar bucles
+            this.lastDisconnectReason = statusCode
             this.emit('whatsapp-status', 'error')
+            this.emit('system-error', {
+              message: 'Conexión reemplazada por otra instancia. Verifica que no haya múltiples bots corriendo.'
+            })
             this.emit('disconnected')
             return // Don't auto-reconnect
           } else if (statusCode === DisconnectReason.timedOut || statusCode === DisconnectReason.unavailableService) {
-            console.log('⚠️ Connection timeout/unavailable - Attempting smart reconnection')
+            console.log('⚠️ Connection timeout/unavailable - Implementing Proyecto-ventas smart reconnection')
             this.isConnected = false
+            this.lastDisconnectReason = statusCode
             
-            // 🔧 FIXED: Implementar reconexión inteligente para timeouts
-            if (this.connectionAttempts < this.maxRetries) {
-              this.connectionAttempts++
-              // Delay más largo para timeouts (30 segundos)
-              const timeoutDelay = 30000 + (this.connectionAttempts * 15000) // Escalado: 30s, 45s, 60s...
-              console.log(`🔄 Timeout reconnection... Attempt ${this.connectionAttempts}/${this.maxRetries} - Waiting ${timeoutDelay/1000}s`)
-              
-              setTimeout(() => {
-                console.log('🔄 Attempting reconnection after timeout...')
-                this.connect()
-              }, timeoutDelay)
-            } else {
-              console.log('❌ Max timeout reconnection attempts reached - Will retry in 5 minutes')
-              this.connectionAttempts = 0
-              
-              // 🔧 NUEVO: Retry después de 5 minutos para casos extremos
-              setTimeout(() => {
-                console.log('🔄 Extended timeout retry - Attempting reconnection')
-                this.connectionAttempts = 0
-                this.connect()
-              }, 300000) // 5 minutos
-              
-              this.emit('disconnected')
-            }
+            // 🔧 IMPLEMENTAR RECONEXIÓN INTELIGENTE PARA TIMEOUTS (ESTILO PROYECTO-VENTAS)
+            this.handleReconnection(true) // true indica que es un timeout
+            
           } else if (this.connectionAttempts < this.maxRetries) {
-            this.connectionAttempts++
-            const delay = 5000 // Fixed delay instead of exponential
-            console.log(`🔄 Reconnecting... Attempt ${this.connectionAttempts}/${this.maxRetries} - Waiting ${delay}ms`)
-            setTimeout(() => this.connect(), delay)
+            console.log(`🔄 Connection lost (${statusCode}) - Implementing smart reconnection...`)
+            this.lastDisconnectReason = statusCode
+            this.handleReconnection(false) // false indica que NO es timeout
           } else {
             console.log('❌ Max reconnection attempts reached')
             this.connectionAttempts = 0
+            this.isReconnecting = false
             this.emit('disconnected')
           }
         } else if (connection === 'open') {
@@ -349,6 +338,61 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
     }, 60000) // Health check cada minuto
   }
   
+  // 🔧 NUEVO: Detener health monitoring
+  stopHealthMonitoring() {
+    if (this.healthInterval) {
+      clearInterval(this.healthInterval)
+      this.healthInterval = null
+      console.log('🛑 Health monitoring stopped')
+    }
+  }
+  
+  // 🔧 NUEVO: Método para manejar reconexiones con backoff exponencial (BASADO EN PROYECTO-VENTAS)
+  handleReconnection(isTimeout = false) {
+    if (this.isReconnecting) {
+      console.log('🔄 Ya hay una reconexión en progreso, ignorando...')
+      return
+    }
+
+    if (this.connectionAttempts >= this.maxRetries) {
+      console.log('❌ Máximo número de intentos de reconexión alcanzado')
+      this.isConnected = false
+      this.isReconnecting = false
+      this.emit('whatsapp-status', 'error')
+      this.emit('system-error', {
+        message: `Falló la reconexión después de ${this.maxRetries} intentos. Intenta conectar manualmente.`
+      })
+      return
+    }
+
+    this.isReconnecting = true
+    this.connectionAttempts++
+
+    // Para timeouts, usar delays más cortos (estilo Proyecto-ventas)
+    let delay
+    if (isTimeout) {
+      // Para timeouts: 1s, 2s, 4s, 8s, 16s (más agresivo)
+      delay = Math.min(1000 * Math.pow(2, this.connectionAttempts - 1), 16000)
+    } else {
+      // Para otros errores: 3s, 6s, 12s, 24s (normal)
+      delay = this.reconnectionDelay * Math.pow(2, this.connectionAttempts - 1)
+    }
+
+    const reasonText = isTimeout ? '(Timeout)' : `(${this.lastDisconnectReason})`
+    console.log(`🔄 Reconectando WhatsApp... ${reasonText} (Intento ${this.connectionAttempts}/${this.maxRetries}) - Esperando ${delay}ms`)
+    this.emit('whatsapp-status', 'reconnecting')
+
+    setTimeout(() => {
+      if (this.isReconnecting) { // Verificar que aún estemos reconectando
+        console.log(`🚀 Ejecutando intento de reconexión ${this.connectionAttempts}`)
+        this.connect().catch(error => {
+          console.error(`❌ Error en intento ${this.connectionAttempts}:`, error)
+          // El error será manejado por el connection.update handler
+        })
+      }
+    }, delay)
+  }
+
   // 🔧 MEJORADO: Status con información adicional de salud
   getStatus() {
     return {
@@ -358,7 +402,8 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
       connectionAttempts: this.connectionAttempts,
       isReconnecting: this.isReconnecting,
       hasHealthMonitoring: !!this.healthInterval,
-      socketState: this.sock ? (this.sock.ws ? this.sock.ws.readyState : 'no-ws') : 'no-socket'
+      socketState: this.sock ? (this.sock.ws ? this.sock.ws.readyState : 'no-ws') : 'no-socket',
+      lastDisconnectReason: this.lastDisconnectReason
     }
   }
   
@@ -373,8 +418,12 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
       this.connectionAttempts = 0
       this.qrCode = null
       
-      // Detener health monitoring
-      this.stopHealthMonitoring()
+      // Detener health monitoring de forma segura
+      try {
+        this.stopHealthMonitoring()
+      } catch (error) {
+        console.log('⚠️ Health monitoring already stopped or not active')
+      }
       
       // Cerrar socket si existe
       if (this.sock) {
@@ -460,11 +509,12 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
 
   async clearSession() {
     try {
-      console.log('🧹 Clearing WhatsApp session...')
+      console.log('🧹 Clearing WhatsApp session (Proyecto-ventas style)...')
 
-      // 🔧 CRÍTICO: Limpiar flags antes de desconectar
+      // 🔧 CRÍTICO: Limpiar flags antes de desconectar (estilo Proyecto-ventas)
       this.isReconnecting = false
       this.connectionAttempts = 0
+      this.lastDisconnectReason = null
       
       // Disconnect if connected
       if (this.sock) {
@@ -498,7 +548,22 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
         }
       }
 
-      console.log('✅ Session cleared successfully')
+      // Recrear directorio limpio (Proyecto-ventas style)
+      try {
+        fs.rmSync(authDir, { recursive: true, force: true })
+        fs.mkdirSync(authDir)
+        console.log('✅ Auth directory recreated clean')
+      } catch (error) {
+        console.log('⚠️ Could not recreate auth directory')
+      }
+
+      // Notificar estado limpio
+      this.emit('whatsapp-status', 'session-cleared')
+      this.emit('session-cleared', {
+        message: 'Sesión limpiada exitosamente. Puedes reconectar ahora.'
+      })
+
+      console.log('✅ Session cleared successfully (Proyecto-ventas style)')
       return true
     } catch (error) {
       console.error('❌ Error clearing session:', error)
