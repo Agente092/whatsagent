@@ -169,10 +169,16 @@ io.on('connection', (socket) => {
 
   socket.on('clear-whatsapp-session', async () => {
     try {
+      console.log('🧹 Manual session clear requested')
       await whatsappService.clearSession()
       socket.emit('session-cleared', { message: 'Session cleared successfully' })
+      // 🔧 NUEVO: Emitir estado listo para nueva conexión
+      setTimeout(() => {
+        socket.emit('whatsapp-status', 'ready-to-connect')
+      }, 1000)
     } catch (error) {
       console.error('Error clearing session:', error)
+      socket.emit('whatsapp-status', 'error')
     }
   })
 
@@ -196,6 +202,12 @@ whatsappService.on('connected', () => {
 whatsappService.on('disconnected', () => {
   logger.whatsapp('warn', 'WhatsApp service disconnected')
   io.emit('whatsapp-status', 'disconnected')
+})
+
+// 🔧 NUEVO: Manejar estados de error
+whatsappService.on('error', (error) => {
+  logger.whatsapp('error', 'WhatsApp service error', { error: error.message })
+  io.emit('whatsapp-status', 'error')
 })
 
 // Auth middleware
