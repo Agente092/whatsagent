@@ -11,14 +11,23 @@ class WhatsAppService extends EventEmitter {
     this.isConnected = false
     this.lastSeen = null
     this.connectionAttempts = 0
-    this.maxRetries = 5
+    this.maxRetries = 8 // 🔧 AUMENTADO: Más intentos para mayor robustez
+    this.timeoutRetries = 3 // 🔧 NUEVO: Intentos específicos para timeouts
+    this.reconnectionDelay = 5000 // 🔧 NUEVO: Delay base configurable
+    this.isReconnecting = false // 🔧 NUEVO: Flag para evitar reconexiones múltiples
   }
 
   async connect() {
     try {
-      // Prevent multiple connections (but allow reconnection after disconnect)
+      // 🔧 MEJORADO: Prevenir conexiones múltiples y gestionar reconexiones
       if (this.isConnected && this.sock) {
         console.log('⚠️ WhatsApp already connected, ignoring request')
+        return
+      }
+      
+      // 🔧 NUEVO: Prevenir múltiples procesos de reconexieon simultáneos
+      if (this.isReconnecting) {
+        console.log('⚠️ Reconnection already in progress, ignoring request')
         return
       }
 
@@ -28,8 +37,8 @@ class WhatsAppService extends EventEmitter {
         this.sock = null
       }
 
+      this.isReconnecting = true // 🔧 NUEVO: Marcar como reconectando
       console.log('🔄 Connecting to WhatsApp...')
-      this.connectionAttempts = 0
 
       // Crear directorio si no existe
       const fs = require('fs')
@@ -42,6 +51,15 @@ class WhatsAppService extends EventEmitter {
       this.sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
+        // 🔧 MEJORADO: Configuración optimizada para Render
+        defaultQueryTimeoutMs: 60000, // 60 segundos timeout
+        connectTimeoutMs: 60000, // 60 segundos para conectar
+        keepAliveIntervalMs: 30000, // Keep alive cada 30 segundos
+        retryRequestDelayMs: 1000, // 1 segundo entre reintentos
+        maxMsgRetryCount: 5, // Máximo 5 reintentos por mensaje
+        // 🔧 NUEVO: Configuraciones específicas para producción
+        browser: ['WhatsApp Business Advisor', 'Chrome', '118.0.0.0'],
+        version: [2, 2412, 54],
         logger: {
           level: 'silent',
           child: () => ({
@@ -117,11 +135,33 @@ class WhatsAppService extends EventEmitter {
             this.emit('disconnected')
             return // Don't auto-reconnect
           } else if (statusCode === DisconnectReason.timedOut || statusCode === DisconnectReason.unavailableService) {
-            console.log('⚠️ Connection timeout/unavailable - Stopping reconnections')
+            console.log('⚠️ Connection timeout/unavailable - Attempting smart reconnection')
             this.isConnected = false
-            this.connectionAttempts = 0
-            this.emit('disconnected')
-            return // Don't auto-reconnect on timeout
+            
+            // 🔧 FIXED: Implementar reconexión inteligente para timeouts
+            if (this.connectionAttempts < this.maxRetries) {
+              this.connectionAttempts++
+              // Delay más largo para timeouts (30 segundos)
+              const timeoutDelay = 30000 + (this.connectionAttempts * 15000) // Escalado: 30s, 45s, 60s...
+              console.log(`🔄 Timeout reconnection... Attempt ${this.connectionAttempts}/${this.maxRetries} - Waiting ${timeoutDelay/1000}s`)
+              
+              setTimeout(() => {
+                console.log('🔄 Attempting reconnection after timeout...')
+                this.connect()
+              }, timeoutDelay)
+            } else {
+              console.log('❌ Max timeout reconnection attempts reached - Will retry in 5 minutes')
+              this.connectionAttempts = 0
+              
+              // 🔧 NUEVO: Retry después de 5 minutos para casos extremos
+              setTimeout(() => {
+                console.log('🔄 Extended timeout retry - Attempting reconnection')
+                this.connectionAttempts = 0
+                this.connect()
+              }, 300000) // 5 minutos
+              
+              this.emit('disconnected')
+            }
           } else if (this.connectionAttempts < this.maxRetries) {
             this.connectionAttempts++
             const delay = 5000 // Fixed delay instead of exponential
@@ -138,7 +178,14 @@ class WhatsAppService extends EventEmitter {
           this.lastSeen = new Date().toISOString()
           this.qrCode = null
           this.connectionAttempts = 0
+          this.isReconnecting = false // 🔧 NUEVO: Limpiar flag de reconexión
           this.emit('connected')
+          
+          // 🔧 NUEVO: Iniciar monitoreo de salud
+          this.startHealthMonitoring()
+          
+          // 🔧 NUEVO: Logging adicional para monitoreo
+          console.log(`📊 Connection stats - Attempts: ${this.connectionAttempts}, Last seen: ${this.lastSeen}`)
         }
       })
 
@@ -168,7 +215,22 @@ class WhatsAppService extends EventEmitter {
 
     } catch (error) {
       console.error('❌ WhatsApp initialization error:', error)
-      this.emit('error', error)
+      this.isReconnecting = false // 🔧 NUEVO: Limpiar flag en caso de error
+      
+      // 🔧 MEJORADO: Retry inteligente en caso de error de inicialización
+      if (this.connectionAttempts < this.maxRetries) {
+        this.connectionAttempts++
+        const retryDelay = this.reconnectionDelay * this.connectionAttempts // Delay progresivo
+        console.log(`🔄 Initialization failed, retrying in ${retryDelay/1000}s... (${this.connectionAttempts}/${this.maxRetries})`)
+        
+        setTimeout(() => {
+          this.connect()
+        }, retryDelay)
+      } else {
+        console.log('❌ Max initialization attempts reached')
+        this.connectionAttempts = 0
+        this.emit('error', error)
+      }
     }
   }
 
@@ -229,12 +291,65 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
     return this.sendMessage(to, welcomeText)
   }
 
+  // 🔧 NUEVO: Método para verificar y mantener conexión activa
+  async healthCheck() {
+    try {
+      if (!this.sock || !this.isConnected) {
+        console.log('🟡 Health check failed - Not connected')
+        return false
+      }
+      
+      // Verificar si el socket está realmente activo
+      const isSocketActive = this.sock.ws && this.sock.ws.readyState === 1
+      if (!isSocketActive) {
+        console.log('🟡 Health check failed - Socket not active')
+        this.isConnected = false
+        return false
+      }
+      
+      console.log('🟢 Health check passed - Connection healthy')
+      return true
+    } catch (error) {
+      console.error('❌ Health check error:', error)
+      return false
+    }
+  }
+  
+  // 🔧 NUEVO: Inicializar health checks periódicos
+  startHealthMonitoring() {
+    if (this.healthInterval) {
+      clearInterval(this.healthInterval)
+    }
+    
+    this.healthInterval = setInterval(async () => {
+      const isHealthy = await this.healthCheck()
+      if (!isHealthy && !this.isReconnecting) {
+        console.log('🚨 Health check failed, attempting reconnection')
+        this.connect()
+      }
+    }, 60000) // Health check cada minuto
+  }
+  
+  // 🔧 MEJORADO: Status con información adicional de salud
   getStatus() {
     return {
       isConnected: this.isConnected,
       lastSeen: this.lastSeen || 'Nunca',
       qrCode: this.qrCode,
-      connectionAttempts: this.connectionAttempts
+      connectionAttempts: this.connectionAttempts,
+      isReconnecting: this.isReconnecting,
+      hasHealthMonitoring: !!this.healthInterval,
+      socketState: this.sock ? (this.sock.ws ? this.sock.ws.readyState : 'no-ws') : 'no-socket'
+    }
+  }
+  
+  // 🔧 NUEVO: Obtener información de conexión para health checks
+  getConnectionInfo() {
+    return {
+      connected: this.isConnected,
+      lastSeen: this.lastSeen,
+      attempts: this.connectionAttempts,
+      hasQR: !!this.qrCode
     }
   }
 
@@ -264,6 +379,11 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
 
   async disconnect() {
     try {
+      console.log('🔌 Initiating WhatsApp disconnection...')
+      
+      // 🔧 NUEVO: Detener health monitoring
+      this.stopHealthMonitoring()
+      
       if (this.sock) {
         await this.sock.logout()
         this.sock.end()
@@ -272,8 +392,9 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
       this.isConnected = false
       this.qrCode = null
       this.sock = null
+      this.isReconnecting = false // 🔧 NUEVO: Limpiar flag
 
-      console.log('📱 WhatsApp disconnected')
+      console.log('📱 WhatsApp disconnected successfully')
     } catch (error) {
       console.error('❌ Disconnect error:', error)
     }
