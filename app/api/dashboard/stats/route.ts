@@ -1,11 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// 🔧 FIXED: Hacer la ruta dinámica para evitar errores de generación estática
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
-    // Obtener token de la cookie o header
-    const token = request.cookies.get('token')?.value || 
-                  request.headers.get('authorization')?.replace('Bearer ', '') || 
-                  '';
+    // 🔧 MEJORADO: Obtener token de múltiples fuentes de forma más robusta
+    let token = ''
+    
+    // Intentar obtener de header primero (más confiable)
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+      token = authHeader.replace('Bearer ', '')
+    }
+    
+    // Solo usar cookies como fallback si no hay header
+    if (!token) {
+      try {
+        const cookieToken = request.cookies.get('token')?.value
+        if (cookieToken) {
+          token = cookieToken
+        }
+      } catch (error) {
+        console.log('Cookie access failed, continuing without token')
+      }
+    }
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/dashboard/stats`, {
       method: 'GET',
