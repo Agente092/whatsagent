@@ -27,6 +27,7 @@
     "db:generate": "npx prisma generate",
     "db:deploy": "npx prisma db push",
     "db:init": "node scripts/init-database.js",
+    "whatsapp:clear": "node emergency-clear-whatsapp.js",
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
