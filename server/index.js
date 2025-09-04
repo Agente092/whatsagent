@@ -181,6 +181,23 @@ io.on('connection', (socket) => {
       socket.emit('whatsapp-status', 'error')
     }
   })
+  
+  // 🔧 NUEVO: Handler para force reset
+  socket.on('force-reset-whatsapp', async () => {
+    try {
+      console.log('🆘 Force reset WhatsApp requested')
+      const success = await whatsappService.forceReset()
+      if (success) {
+        socket.emit('whatsapp-status', 'ready-to-connect')
+        socket.emit('session-cleared', { message: 'WhatsApp force reset completed' })
+      } else {
+        socket.emit('whatsapp-status', 'error')
+      }
+    } catch (error) {
+      console.error('Error in force reset:', error)
+      socket.emit('whatsapp-status', 'error')
+    }
+  })
 
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected: ${socket.id}`)
