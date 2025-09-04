@@ -25,9 +25,10 @@ class WhatsAppService extends EventEmitter {
         return
       }
       
-      // 🔧 NUEVO: Prevenir múltiples procesos de reconexieon simultáneos
+      // 🔧 NUEVO: Prevenir múltiples procesos de reconexión simultáneos
       if (this.isReconnecting) {
         console.log('⚠️ Reconnection already in progress, ignoring request')
+        console.log(`🔍 Debug: isReconnecting=${this.isReconnecting}, isConnected=${this.isConnected}, hasSocket=${!!this.sock}`)
         return
       }
 
@@ -131,6 +132,7 @@ class WhatsAppService extends EventEmitter {
             console.log('🚨 Bad session/405 error detected - Force clearing session')
             this.isConnected = false
             this.connectionAttempts = 0
+            this.isReconnecting = false // 🔧 CRÍTICO: Limpiar flag de reconexión
             this.emit('whatsapp-status', 'session-invalid')
             
             setTimeout(async () => {
@@ -360,13 +362,52 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
     }
   }
   
-  // 🔧 NUEVO: Obtener información de conexión para health checks
-  getConnectionInfo() {
-    return {
-      connected: this.isConnected,
-      lastSeen: this.lastSeen,
-      attempts: this.connectionAttempts,
-      hasQR: !!this.qrCode
+  // 🔧 NUEVO: Método de emergencia para resetear estado completamente
+  async forceReset() {
+    try {
+      console.log('🆘 FORCE RESET: Resetting WhatsApp state completely')
+      
+      // Limpiar todos los flags y estados
+      this.isConnected = false
+      this.isReconnecting = false
+      this.connectionAttempts = 0
+      this.qrCode = null
+      
+      // Detener health monitoring
+      this.stopHealthMonitoring()
+      
+      // Cerrar socket si existe
+      if (this.sock) {
+        try {
+          this.sock.end()
+        } catch (error) {
+          console.log('⚠️ Error ending socket:', error.message)
+        }
+        this.sock = null
+      }
+      
+      // Limpiar archivos de sesión
+      const fs = require('fs')
+      const authDir = './auth_info_baileys'
+      if (fs.existsSync(authDir)) {
+        const files = fs.readdirSync(authDir)
+        files.forEach(file => {
+          try {
+            fs.unlinkSync(`${authDir}/${file}`)
+            console.log(`🗑️ Force removed: ${file}`)
+          } catch (error) {
+            console.log(`⚠️ Could not force remove ${file}`)
+          }
+        })
+      }
+      
+      console.log('✅ Force reset completed - Ready for fresh connection')
+      this.emit('whatsapp-status', 'ready-to-connect')
+      
+      return true
+    } catch (error) {
+      console.error('❌ Force reset error:', error)
+      return false
     }
   }
 
@@ -421,6 +462,10 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
     try {
       console.log('🧹 Clearing WhatsApp session...')
 
+      // 🔧 CRÍTICO: Limpiar flags antes de desconectar
+      this.isReconnecting = false
+      this.connectionAttempts = 0
+      
       // Disconnect if connected
       if (this.sock) {
         try {
@@ -434,7 +479,6 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
 
       this.isConnected = false
       this.qrCode = null
-      this.connectionAttempts = 0
 
       // Remove auth files
       const fs = require('fs')
@@ -458,6 +502,7 @@ Puedes preguntarme cualquier cosa relacionada con estos temas. Estoy disponible 
       return true
     } catch (error) {
       console.error('❌ Error clearing session:', error)
+      this.isReconnecting = false // 🔧 Asegurar que se limpia en caso de error
       throw error
     }
   }
