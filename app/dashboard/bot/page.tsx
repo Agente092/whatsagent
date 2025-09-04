@@ -106,6 +106,20 @@ export default function BotStatusPage() {
       }, 2000)
     }
   }
+  
+  // 🔧 NUEVO: Force reset completo
+  const handleForceReset = () => {
+    if (socket) {
+      setIsConnecting(true)
+      setWhatsappStatus('clearing')
+      socket.emit('force-reset-whatsapp')
+      // Conectar automáticamente después del reset
+      setTimeout(() => {
+        socket.emit('connect-whatsapp')
+        setWhatsappStatus('connecting')
+      }, 3000)
+    }
+  }
 
   const getStatusBadge = () => {
     switch (whatsappStatus) {
@@ -219,13 +233,13 @@ export default function BotStatusPage() {
                           )}
                         </Button>
                         <Button 
-                          onClick={handleForceNewSession}
+                          onClick={handleForceReset}
                           disabled={isConnecting}
                           variant="outline"
                           className="w-full sm:w-auto"
                         >
                           <RefreshCw className="w-4 h-4 mr-2" />
-                          Nueva Sesión Limpia
+                          Reset Total + Conectar
                         </Button>
                       </div>
                     </div>
@@ -257,11 +271,11 @@ export default function BotStatusPage() {
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Button 
-                          onClick={handleForceNewSession}
+                          onClick={handleForceReset}
                           className="w-full sm:w-auto"
                         >
                           <RefreshCw className="w-4 h-4 mr-2" />
-                          Intentar Nueva Sesión
+                          Reset Total + Conectar
                         </Button>
                         <Button 
                           onClick={handleClearSession}
