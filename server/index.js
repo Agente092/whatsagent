@@ -49,6 +49,8 @@ const humanReasoning = new HumanReasoningEngine(geminiService, conversationMemor
 
 // 📱 Initialize WhatsApp service with enhanced intelligence
 const whatsappService = new WhatsAppService()
+const WhatsAppMonitor = require('./services/whatsappMonitor')
+const whatsappMonitor = new WhatsAppMonitor(whatsappService) // 🔧 NUEVO: Monitor avanzado
 
 // Initialize health check
 const healthCheck = new HealthCheck(prisma, whatsappService)
@@ -488,6 +490,24 @@ app.get('/health', async (req, res) => {
   } catch (error) {
     logger.error('Health check failed', error, { requestId: req.id })
     res.status(503).json({ status: 'error', timestamp: new Date().toISOString() })
+  }
+})
+
+// 🔧 NUEVO: Health check detallado con monitoreo de WhatsApp
+app.get('/health/whatsapp', authenticateToken, async (req, res) => {
+  try {
+    const healthReport = whatsappMonitor.getHealthReport()
+    res.json({
+      success: true,
+      data: healthReport
+    })
+  } catch (error) {
+    logger.error('WhatsApp health check failed', error, { requestId: req.id })
+    res.status(500).json({ 
+      success: false, 
+      error: error.message, 
+      timestamp: new Date().toISOString() 
+    })
   }
 })
 
@@ -1589,6 +1609,9 @@ server.listen(PORT, '0.0.0.0', () => {
   })
   logger.info('Socket.IO ready for connections', { service: 'system' })
   logger.info('WhatsApp Bot ready (waiting for connection request)', { service: 'system' })
+  
+  // 🔧 NUEVO: Iniciar monitoreo avanzado de WhatsApp
+  whatsappMonitor.startMonitoring()
   
   // Configuraciones de producción
   if (process.env.NODE_ENV === 'production') {
