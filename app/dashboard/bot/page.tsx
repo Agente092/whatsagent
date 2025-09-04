@@ -14,33 +14,48 @@ export default function BotStatusPage() {
   const [whatsappStatus, setWhatsappStatus] = useState('disconnected')
   const [qrCode, setQrCode] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
+  const [mounted, setMounted] = useState(false) // 🔧 NUEVO: Prevenir errores de hidratación
+
+  // 🔧 NUEVO: Asegurar que el componente está montado
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
+    // 🔧 MEJORADO: Solo conectar cuando está montado
+    if (!mounted) return
+    
     // Connect to Socket.IO server
     const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
     setSocket(newSocket)
 
     // Listen to WhatsApp events
     newSocket.on('whatsapp-status', (status) => {
+      console.log('WhatsApp status received:', status) // 🔧 DEBUG
       setWhatsappStatus(status)
       if (status === 'connected') {
         setIsConnecting(false)
         setQrCode('')
+      } else if (status === 'error' || status === 'disconnected') {
+        setIsConnecting(false)
       }
     })
 
     newSocket.on('qr-code', (qr) => {
+      console.log('QR code received') // 🔧 DEBUG
       setQrCode(qr)
       setIsConnecting(false)
     })
 
     newSocket.on('whatsapp-ready', () => {
+      console.log('WhatsApp ready received') // 🔧 DEBUG
       setWhatsappStatus('connected')
       setQrCode('')
       setIsConnecting(false)
     })
 
     newSocket.on('session-cleared', () => {
+      console.log('Session cleared received') // 🔧 DEBUG
       setWhatsappStatus('ready-to-connect')
       setQrCode('')
       setIsConnecting(false)
@@ -49,7 +64,7 @@ export default function BotStatusPage() {
     return () => {
       newSocket.close()
     }
-  }, [])
+  }, [mounted])
 
   const handleConnectWhatsApp = () => {
     if (socket) {
@@ -64,12 +79,31 @@ export default function BotStatusPage() {
       socket.emit('disconnect-whatsapp')
       setWhatsappStatus('disconnected')
       setQrCode('')
+      setIsConnecting(false)
     }
   }
 
   const handleClearSession = () => {
     if (socket) {
+      setIsConnecting(true)
       socket.emit('clear-whatsapp-session')
+      setWhatsappStatus('disconnected')
+      setQrCode('')
+    }
+  }
+  
+  // 🔧 NUEVO: Forzar nueva sesión limpia
+  const handleForceNewSession = () => {
+    if (socket) {
+      setIsConnecting(true)
+      setWhatsappStatus('clearing')
+      // Primero limpiar sesión
+      socket.emit('clear-whatsapp-session')
+      // Luego conectar después de un delay
+      setTimeout(() => {
+        socket.emit('connect-whatsapp')
+        setWhatsappStatus('connecting')
+      }, 2000)
     }
   }
 
@@ -79,8 +113,14 @@ export default function BotStatusPage() {
         return <Badge className="bg-green-500 hover:bg-green-600">Conectado</Badge>
       case 'connecting':
         return <Badge className="bg-yellow-500 hover:bg-yellow-600">Conectando...</Badge>
+      case 'clearing':
+        return <Badge className="bg-blue-500 hover:bg-blue-600">Limpiando Sesión...</Badge>
       case 'ready-to-connect':
         return <Badge className="bg-blue-500 hover:bg-blue-600">Listo para Conectar</Badge>
+      case 'session-invalid':
+        return <Badge className="bg-orange-500 hover:bg-orange-600">Sesión Inválida</Badge>
+      case 'error':
+        return <Badge variant="destructive">Error de Conexión</Badge>
       default:
         return <Badge variant="destructive">Desconectado</Badge>
     }
@@ -91,10 +131,29 @@ export default function BotStatusPage() {
       case 'connected':
         return <Wifi className="w-6 h-6 text-green-600" />
       case 'connecting':
+      case 'clearing':
         return <RefreshCw className="w-6 h-6 text-yellow-600 animate-spin" />
+      case 'session-invalid':
+        return <AlertTriangle className="w-6 h-6 text-orange-600" />
+      case 'error':
+        return <AlertTriangle className="w-6 h-6 text-red-600" />
       default:
         return <WifiOff className="w-6 h-6 text-red-600" />
     }
+  }
+
+  // 🔧 NUEVO: Prevenir renderizado hasta que esté montado
+  if (!mounted) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
+            <p className="text-gray-600">Cargando dashboard...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -141,23 +200,78 @@ export default function BotStatusPage() {
                       <p className="text-gray-600 mb-6">
                         El bot no está conectado. Los clientes no pueden enviar mensajes.
                       </p>
-                      <Button 
-                        onClick={handleConnectWhatsApp}
-                        disabled={isConnecting}
-                        className="w-full sm:w-auto"
-                      >
-                        {isConnecting ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                            Conectando...
-                          </>
-                        ) : (
-                          <>
-                            <Wifi className="w-4 h-4 mr-2" />
-                            Conectar WhatsApp
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button 
+                          onClick={handleConnectWhatsApp}
+                          disabled={isConnecting}
+                          className="w-full sm:w-auto"
+                        >
+                          {isConnecting ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Conectando...
+                            </>
+                          ) : (
+                            <>
+                              <Wifi className="w-4 h-4 mr-2" />
+                              Conectar WhatsApp
+                            </>
+                          )}
+                        </Button>
+                        <Button 
+                          onClick={handleForceNewSession}
+                          disabled={isConnecting}
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Nueva Sesión Limpia
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Clearing Session State */}
+                  {whatsappStatus === 'clearing' && (
+                    <div className="text-center py-8">
+                      <RefreshCw className="w-16 h-16 text-blue-600 mx-auto mb-4 animate-spin" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Limpiando Sesión...
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        Eliminando archivos de sesión anterior y preparando nueva conexión.
+                      </p>
+                      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    </div>
+                  )}
+                  
+                  {/* Error State */}
+                  {whatsappStatus === 'error' && (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="w-16 h-16 text-red-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Error de Conexión
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        No se pudo establecer la conexión con WhatsApp. Intenta con una nueva sesión.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button 
+                          onClick={handleForceNewSession}
+                          className="w-full sm:w-auto"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Intentar Nueva Sesión
+                        </Button>
+                        <Button 
+                          onClick={handleClearSession}
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Solo Limpiar Sesión
+                        </Button>
+                      </div>
                     </div>
                   )}
 
