@@ -126,6 +126,23 @@ class WhatsAppService extends EventEmitter {
                 this.emit('whatsapp-status', 'error')
               }
             }, 2000)
+          // 🔧 NUEVO: Manejar código 405 y otros errores de autenticación
+          } else if (statusCode === DisconnectReason.badSession || statusCode === 405 || statusCode === DisconnectReason.connectionClosed) {
+            console.log('🚨 Bad session/405 error detected - Force clearing session')
+            this.isConnected = false
+            this.connectionAttempts = 0
+            this.emit('whatsapp-status', 'session-invalid')
+            
+            setTimeout(async () => {
+              try {
+                await this.clearSession()
+                console.log('✅ Session cleared automatically due to auth error')
+                this.emit('whatsapp-status', 'ready-to-connect')
+              } catch (error) {
+                console.error('Error clearing session automatically:', error)
+                this.emit('whatsapp-status', 'error')
+              }
+            }, 2000)
           } else if (statusCode === DisconnectReason.connectionReplaced) {
             console.log('🚨 CONNECTION REPLACED - Multiple instances detected')
             console.log('⚠️ Stopping auto-reconnections to prevent infinite loop')
