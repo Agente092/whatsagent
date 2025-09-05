@@ -1411,8 +1411,8 @@ whatsappService.on('message', async (message) => {
             }
             
             // 🎆 GENERAR SALUDO ELEGANTE PERSONALIZADO CON FORMATEO CORRECTO
-            // Usar el formatter del backup para aplicar negritas correctamente
-            const elegantWelcome = geminiService.formatter.formatWelcomeMessage(client.name, [])
+            // Usar el formatter del backup para aplicar negritas correctamente y saludo según hora
+            const elegantWelcome = geminiService.formatter.formatWelcomeMessage(client.name, [], timeGreeting)
             
             await whatsappService.sendMessage(from, elegantWelcome)
             
@@ -1447,13 +1447,7 @@ whatsappService.on('message', async (message) => {
             return // 🚫 SALIR TEMPRANO - NO CONTINUAR CON IA
             
           } catch (welcomeError) {
-            logger.error('⚠️ Error en saludo elegante:', {
-              error: welcomeError.message,
-              stack: welcomeError.stack,
-              clientName: client.name,
-              formatterExists: !!geminiService.formatter,
-              formatWelcomeMessageExists: !!(geminiService.formatter && geminiService.formatter.formatWelcomeMessage)
-            })
+            logger.error('⚠️ Error en saludo elegante:', welcomeError)
             
             // 🆘 FALLBACK SEGURO - SALUDO BÁSICO
             const fallbackMessage = `¡Hola ${client.name}! Soy tu asesor empresarial especializado. ¿En qué puedo ayudarte hoy?`
