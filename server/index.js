@@ -186,7 +186,7 @@ io.on('connection', (socket) => {
   socket.on('force-reset-whatsapp', async () => {
     try {
       console.log('🆘 Force reset WhatsApp requested')
-      const success = await whatsappService.forceReset()
+      const success = await whatsappService.forceNewQR() // 🔧 USAR forceNewQR para regenerar
       if (success) {
         socket.emit('whatsapp-status', 'ready-to-connect')
         socket.emit('session-cleared', { message: 'WhatsApp force reset completed' })
@@ -195,6 +195,23 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.error('Error in force reset:', error)
+      socket.emit('whatsapp-status', 'error')
+    }
+  })
+
+  // 🔧 NUEVO: Handler específico para regenerar QR
+  socket.on('regenerate-qr', async () => {
+    try {
+      console.log('🆕 Regenerate QR requested')
+      const success = await whatsappService.forceNewQR()
+      if (success) {
+        socket.emit('whatsapp-status', 'connecting')
+        console.log('✅ QR regeneration initiated')
+      } else {
+        socket.emit('whatsapp-status', 'error')
+      }
+    } catch (error) {
+      console.error('Error regenerating QR:', error)
       socket.emit('whatsapp-status', 'error')
     }
   })
