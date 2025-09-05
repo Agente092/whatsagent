@@ -1411,8 +1411,8 @@ whatsappService.on('message', async (message) => {
             }
             
             // 🎆 GENERAR SALUDO ELEGANTE PERSONALIZADO CON FORMATEO CORRECTO
-            // Usar el formatter del backup para aplicar negritas correctamente y saludo según hora
-            const elegantWelcome = geminiService.formatter.formatWelcomeMessage(client.name, [], timeGreeting)
+            // Usar el formatter del backup para aplicar negritas correctamente
+            const elegantWelcome = geminiService.formatter.formatWelcomeMessage(client.name, [])
             
             await whatsappService.sendMessage(from, elegantWelcome)
             
