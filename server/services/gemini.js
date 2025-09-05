@@ -1002,6 +1002,91 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
     
     return baseResponse
   }
+
+  /**
+   * 🤔 GENERAR PREGUNTAS PERSONALIZADAS BASADAS EN LA CONSULTA
+   */
+  generatePersonalizedQuestions(userMessage, intent, knowledgeContext) {
+    try {
+      const lowerMessage = userMessage.toLowerCase()
+      
+      // 🔍 DETECTAR TEMAS ESPECIALIZADOS
+      const topicKeywords = {
+        'herencia_empresarial': ['herencia', 'repartir', 'hermanos', 'familia', 'empresa familiar', 'sucesión'],
+        'lavado_dinero': ['blanquear', 'lavar', 'dinero sucio', 'efectivo', 'legitimizar'],
+        'evasion_fiscal': ['evasión', 'impuestos', 'sunat', 'tributario', 'fiscal'],
+        'holding_offshore': ['holding', 'offshore', 'paraíso fiscal', 'internacional'],
+        'estructuras_complejas': ['estructura', 'sociedad', 'empresa fantasma', 'fideicomisos'],
+        'inversion_inmobiliaria': ['inmobiliaria', 'terreno', 'propiedades', 'bienes raíces']
+      }
+      
+      let detectedTopic = 'general'
+      for (const [topic, keywords] of Object.entries(topicKeywords)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          detectedTopic = topic
+          break
+        }
+      }
+      
+      // 📝 GENERAR PREGUNTAS ESPECÍFICAS PARA CADA TEMA
+      const questionSets = {
+        'herencia_empresarial': [
+          '¿Qué tipo de activos componen la herencia? (🏢 Inmuebles, 💰 Acciones, 🏦 Cuentas bancarias, etc.)',
+          '¿Existe un testamento? ¿Hay deudas pendientes asociadas a la empresa familiar?',
+          '¿Cuál es la estructura legal actual de la empresa? (S.A., S.A.C., S.R.L., etc.)',
+          '¿Existen preferencias individuales sobre la distribución de los bienes?',
+          '¿Desean minimizar la carga tributaria asociada a la herencia?'
+        ],
+        'lavado_dinero': [
+          '¿Cuál es el origen de los fondos que necesita estructurar?',
+          '¿Qué volumen de operaciones maneja mensualmente?',
+          '¿En qué jurisdicciones opera actualmente?',
+          '¿Tiene estructuras empresariales existentes?',
+          '¿Qué nivel de anonimato requiere en sus operaciones?'
+        ],
+        'evasion_fiscal': [
+          '¿Cuál es su régimen tributario actual?',
+          '¿Qué tipos de ingresos genera su empresa?',
+          '¿Tiene operaciones internacionales?',
+          '¿Qué porcentaje de optimización fiscal busca lograr?',
+          '¿Ha tenido fiscalizaciones previas de SUNAT?'
+        ],
+        'holding_offshore': [
+          '¿Qué activos desea proteger mediante la estructura offshore?',
+          '¿En qué jurisdicción preferiría establecer la holding?',
+          '¿Tiene socios o es propietario único?',
+          '¿Qué actividades comerciales desarrollará la holding?',
+          '¿Requiere confidencialidad del beneficiario final?'
+        ],
+        'estructuras_complejas': [
+          '¿Qué objetivo busca con la estructura? (🛡️ Protección, 💰 Optimización, 🌍 Expansión)',
+          '¿Cuántas empresas quiere incluir en la estructura?',
+          '¿En qué países tiene o planea tener operaciones?',
+          '¿Qué nivel de complejidad está dispuesto a manejar?',
+          '¿Tiene asesores legales y contables especializados?'
+        ],
+        'inversion_inmobiliaria': [
+          '¿En qué tipo de inmuebles desea invertir?',
+          '¿Cuál es su presupuesto de inversión disponible?',
+          '¿Busca rentabilidad por alquiler o valorización?',
+          '¿Tiene experiencia previa en inversiones inmobiliarias?',
+          '¿En qué zonas geográficas está interesado?'
+        ],
+        'general': [
+          '¿Podría proporcionarme más detalles sobre su situación actual?',
+          '¿Cuáles son sus objetivos principales?',
+          '¿Tiene restricciones de tiempo o presupuesto?',
+          '¿Ha consultado previamente con otros asesores?'
+        ]
+      }
+      
+      return questionSets[detectedTopic] || questionSets['general']
+      
+    } catch (error) {
+      logger.error('❌ Error generando preguntas personalizadas:', error)
+      return ['¿Podría proporcionar más información para brindarle una asesoría más precisa?']
+    }
+  }
 }
 
 module.exports = GeminiService
