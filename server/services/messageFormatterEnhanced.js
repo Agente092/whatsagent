@@ -285,12 +285,16 @@ class MessageFormatterEnhanced {
    */
   formatWelcomeMessage(clientName, specialties = []) {
     const defaultSpecialties = [
-      'Estrategias fiscales y tributarias',
-      'Estructuras empresariales avanzadas', 
-      'Inversiones inmobiliarias',
-      'Planificación patrimonial',
-      'Optimización de Holdings',
-      'Fideicomisos y vehículos offshore'
+      'Estrategias financieras avanzadas y apalancamiento',
+      'Estructuras offshore y blindaje patrimonial', 
+      'Holdings internacionales y optimización fiscal',
+      'Expansión empresarial desde Perú',
+      'Fideicomisos y fundaciones privadas',
+      'Compliance y estructuras regulatorias',
+      'Métodos de elusión fiscal internacional',
+      'Arbitraje jurisdiccional y paraísos fiscales',
+      'Transfer pricing y precios de transferencia',
+      'Planificación sucesoria multinacional'
     ]
 
     const availableSpecialties = specialties.length > 0 ? specialties : defaultSpecialties
