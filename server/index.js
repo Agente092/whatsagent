@@ -1447,7 +1447,13 @@ whatsappService.on('message', async (message) => {
             return // 🚫 SALIR TEMPRANO - NO CONTINUAR CON IA
             
           } catch (welcomeError) {
-            logger.error('⚠️ Error en saludo elegante:', welcomeError)
+            logger.error('⚠️ Error en saludo elegante:', {
+              error: welcomeError.message,
+              stack: welcomeError.stack,
+              clientName: client.name,
+              formatterExists: !!geminiService.formatter,
+              formatWelcomeMessageExists: !!(geminiService.formatter && geminiService.formatter.formatWelcomeMessage)
+            })
             
             // 🆘 FALLBACK SEGURO - SALUDO BÁSICO
             const fallbackMessage = `¡Hola ${client.name}! Soy tu asesor empresarial especializado. ¿En qué puedo ayudarte hoy?`
