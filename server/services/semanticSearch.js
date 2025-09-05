@@ -44,7 +44,7 @@ class SemanticSearchService {
    */
   async processKnowledgeBase() {
     try {
-      const context = this.knowledgeBase && this.knowledgeBase.getContext ? this.knowledgeBase.getContext() : ''
+      const context = this.knowledgeBase.getContext()
       if (!context) {
         throw new Error('Knowledge base context not available')
       }
