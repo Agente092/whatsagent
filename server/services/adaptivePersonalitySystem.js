@@ -120,13 +120,13 @@ class AdaptivePersonalitySystem {
         recommendation: 'Recomiendo implementar la siguiente estrategia:',
         closing: 'Quedo a su disposición para cualquier consulta adicional sobre este tema empresarial.'
       },
-      specialization: ['fiscal', 'compliance', 'corporate_structure']
+      specialization: ['fiscal', 'compliance', 'corporate_structure', 'sunat', 'sbs', 'uif']
     })
 
-    // Perfil Asesor Estratégico
+    // Perfil Asesor Estratégico Financiero Avanzado
     this.personalityProfiles.set('strategic', {
-      name: 'Asesor Estratégico',
-      description: 'Visionario, analítico, enfocado en estrategias a largo plazo',
+      name: 'Asesor Estratégico Financiero',
+      description: 'Experto en estrategias financieras internacionales, estructuras offshore y optimización fiscal',
       characteristics: {
         tone: 'consultative',
         responseLength: 'comprehensive',
@@ -136,12 +136,12 @@ class AdaptivePersonalitySystem {
         directness: 'medium'
       },
       phraseTemplates: {
-        greeting: '🎯 Excelente momento para una consulta estratégica. Analicemos su situación desde una perspectiva integral.',
+        greeting: '🎯 Excelente momento para una consultoría estratégica financiera. Analicemos su situación desde una perspectiva integral.',
         analysis_intro: '📊 Mi evaluación estratégica identifica múltiples vectores de optimización:',
         recommendation: '🚀 La estrategia óptima contempla estos elementos interconectados:',
         closing: '💡 Esta planificación estratégica requiere seguimiento continuo. ¿Desea profundizar en algún aspecto específico?'
       },
-      specialization: ['investment', 'offshore', 'optimization']
+      specialization: ['investment', 'offshore', 'optimization', 'holding_structures', 'transfer_pricing', 'international_expansion']
     })
 
     // Perfil Especialista Técnico
@@ -162,7 +162,7 @@ class AdaptivePersonalitySystem {
         recommendation: 'La implementación técnica requiere estos pasos críticos:',
         closing: 'La documentación técnica completa está disponible. ¿Requiere especificaciones adicionales?'
       },
-      specialization: ['compliance', 'legal', 'implementation']
+      specialization: ['compliance', 'legal', 'implementation', 'aml_cft', 'fintech_regulation', 'banking_supervision']
     })
 
     // Perfil Consultor Creativo
@@ -183,7 +183,7 @@ class AdaptivePersonalitySystem {
         recommendation: '🚀 Propongo esta estrategia innovadora que aprovecha tendencias emergentes:',
         closing: '🌟 Las posibilidades son amplias. ¿Le interesa explorar enfoques alternativos?'
       },
-      specialization: ['criptomonedas', 'innovation', 'emerging_markets']
+      specialization: ['criptomonedas', 'innovation', 'emerging_markets', 'blockchain', 'defi', 'digital_assets', 'fintech']
     })
 
     // Perfil Asesor Conservador
@@ -204,7 +204,28 @@ class AdaptivePersonalitySystem {
         recommendation: '🛡️ Recomiendo este enfoque conservador que minimiza exposición:',
         closing: 'La prudencia en la implementación es clave. ¿Desea revisar medidas adicionales de protección?'
       },
-      specialization: ['risk_management', 'compliance', 'legal_protection']
+      specialization: ['risk_management', 'compliance', 'legal_protection', 'asset_protection', 'trusts', 'foundations']
+    })
+
+    // Perfil Especialista en Estrategias Financieras Avanzadas
+    this.personalityProfiles.set('advanced_financial', {
+      name: 'Especialista en Estrategias Financieras Avanzadas',
+      description: 'Experto en estructuras complejas, blindaje patrimonial, expansión internacional y optimización fiscal avanzada',
+      characteristics: {
+        tone: 'expert_consultative',
+        responseLength: 'comprehensive',
+        emojis: 'strategic',
+        technicality: 'maximum',
+        patience: 'very_high',
+        directness: 'high'
+      },
+      phraseTemplates: {
+        greeting: '🎯 Como especialista en estrategias financieras avanzadas, analizaré su situación desde una perspectiva integral y estratégica.',
+        analysis_intro: '📈 Mi análisis especializado identifica las siguientes oportunidades de optimización:',
+        recommendation: '🛡️ Recomiendo esta estrategia integral que optimiza protección, eficiencia fiscal y escalabilidad:',
+        closing: '🧪 Esta estructuración requiere implementación cuidadosa y seguimiento continuo. ¿Desea profundizar en aspectos técnicos específicos?'
+      },
+      specialization: ['asset_structuring', 'international_expansion', 'offshore_strategies', 'tax_optimization', 'holding_operations', 'wealth_management', 'regulatory_compliance', 'financial_engineering']
     })
   }
 
@@ -292,10 +313,16 @@ class AdaptivePersonalitySystem {
     
     // Analizar nivel técnico basado en categorías empresariales
     const businessCategories = conversationHistory.flatMap(msg => msg.businessCategories || [])
-    const advancedCategories = ['offshore', 'compliance', 'financial_crime', 'optimization']
-    const hasAdvancedTopics = businessCategories.some(cat => advancedCategories.includes(cat))
+    const advancedCategories = ['offshore', 'compliance', 'financial_crime', 'optimization', 'fintech', 'blockchain', 'asset_protection']
+    const expertCategories = ['international_expansion', 'holding_structures', 'transfer_pricing', 'wealth_management', 'regulatory_compliance']
     
-    if (hasAdvancedTopics) {
+    const hasAdvancedTopics = businessCategories.some(cat => advancedCategories.includes(cat))
+    const hasExpertTopics = businessCategories.some(cat => expertCategories.includes(cat))
+    
+    if (hasExpertTopics) {
+      analysis.technicalLevel = 'maximum'
+      analysis.businessSophistication = 'expert'
+    } else if (hasAdvancedTopics) {
       analysis.technicalLevel = 'high'
       analysis.businessSophistication = 'expert'
     }
@@ -328,7 +355,18 @@ class AdaptivePersonalitySystem {
    * 🎯 Determinar personalidad base según análisis
    */
   determineBasePersonality(clientAnalysis) {
-    // Lógica de decisión basada en patrones empresariales
+    // Lógica de decisión basada en patrones empresariales avanzados
+    
+    // Para consultas sobre estrategias financieras complejas
+    const advancedFinancialTopics = ['offshore', 'holding', 'optimization', 'asset_protection', 'international', 'fintech']
+    const hasAdvancedFinancialTopics = clientAnalysis.preferredTopics.some(topic => 
+      advancedFinancialTopics.some(advanced => topic.includes(advanced))
+    )
+    
+    if (hasAdvancedFinancialTopics && clientAnalysis.businessSophistication === 'expert') {
+      return 'advanced_financial'
+    }
+    
     if (clientAnalysis.technicalLevel === 'high' && clientAnalysis.businessSophistication === 'expert') {
       return 'technical'
     }
@@ -342,12 +380,14 @@ class AdaptivePersonalitySystem {
     }
     
     if (clientAnalysis.preferredTopics.includes('criptomonedas') || 
-        clientAnalysis.preferredTopics.includes('innovation')) {
+        clientAnalysis.preferredTopics.includes('innovation') ||
+        clientAnalysis.preferredTopics.includes('blockchain')) {
       return 'innovative'
     }
     
     if (clientAnalysis.riskTolerance === 'low' || 
-        clientAnalysis.preferredTopics.includes('compliance')) {
+        clientAnalysis.preferredTopics.includes('compliance') ||
+        clientAnalysis.preferredTopics.includes('legal_protection')) {
       return 'conservative'
     }
     
