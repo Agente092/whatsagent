@@ -19,6 +19,18 @@ class WhatsAppService extends EventEmitter {
     this.isReconnecting = false
     this.lastDisconnectReason = null
     this.healthInterval = null
+    
+    // 🔧 CRÍTICO: Crear directorio auth al inicializar (PROYECTO-VENTAS STYLE)
+    this.initializeAuthDirectory()
+  }
+
+  // 🔧 NUEVO: Inicializar directorio de autenticación
+  initializeAuthDirectory() {
+    const fs = require('fs')
+    if (!fs.existsSync('./auth_info_baileys')) {
+      fs.mkdirSync('./auth_info_baileys')
+      console.log('📁 Auth directory created')
+    }
   }
 
   // 🔧 MÉTODO DE RECONEXIÓN EXACTO DEL PROYECTO-VENTAS
@@ -67,9 +79,18 @@ class WhatsAppService extends EventEmitter {
     try {
       // 🔧 CRÍTICO: Si no estamos en proceso de reconexión automática, resetear contadores (PROYECTO-VENTAS STYLE)
       if (!this.isReconnecting) {
-        this.reconnectAttempts = 0
+        this.connectionAttempts = 0
+        this.reconnectAttempts = 0 // 🔧 NUEVO: Resetear también reconnectAttempts
         console.log('🔄 Iniciando conexión manual - Reseteando contadores de reconexión')
       }
+
+      // 🔧 CRÍTICO: Limpiar QR anterior ANTES de conectar (PROYECTO-VENTAS STYLE)
+      this.qr = null
+      this.qrCode = null
+      console.log('🧩 QR anterior limpiado - Preparando nueva generación')
+
+      // 🔧 NUEVO: Asegurar que el directorio existe
+      this.initializeAuthDirectory()
 
       const { state, saveCreds } = await useMultiFileAuthState('./auth_info_baileys')
 
@@ -113,9 +134,11 @@ class WhatsAppService extends EventEmitter {
           this.qr = qr
           const qrImage = await QRCode.toDataURL(qr)
           this.qrCode = qrImage
+          // 🔧 CRÍTICO: Emitir AMBOS eventos como Proyecto-ventas
           this.emit('qr-code', qrImage)
           this.emit('whatsapp-status', 'connecting')
-          console.log('📱 Código QR generado para WhatsApp')
+          console.log('📱 Código QR generado para WhatsApp - NUEVO QR!')
+          console.log(`🔍 QR Length: ${qr.length}, Image size: ${qrImage.length} bytes`)
         }
 
         if (connection === 'close') {
@@ -253,35 +276,36 @@ class WhatsAppService extends EventEmitter {
     try {
       console.log('🧹 Iniciando limpieza de sesión WhatsApp...')
 
-      // Desconectar si está conectado
+      // 🔧 PASO 2: Desconectar socket si existe
       if (this.sock) {
         try {
           await this.sock.logout()
+          console.log('✅ Socket logout exitoso')
         } catch (error) {
-          console.log('⚠️ Error al desconectar (esperado si sesión inválida):', error.message)
+          console.log('⚠️ Error durante logout (esperado si sesión inválida):', error.message)
         }
+        this.sock.end()
         this.sock = null
+        console.log('✅ Socket cerrado y limpiado')
       }
 
-      // Limpiar estado
-      this.isConnected = false
-      this.qr = null
-      this.qrCode = null
-      this.isReconnecting = false
-      this.reconnectAttempts = 0
-
-      // Eliminar archivos de autenticación
+      // 🔧 PASO 3: Eliminar archivos COMPLETAMENTE
       const fs = require('fs')
       if (fs.existsSync('./auth_info_baileys')) {
         console.log('🗑️ Eliminando archivos de autenticación...')
+        
+        // Listar archivos antes de eliminar
+        const files = fs.readdirSync('./auth_info_baileys')
+        console.log(`📁 Archivos encontrados: ${files.length} - ${files.join(', ')}`)
+        
+        // Eliminar directorio completo
         fs.rmSync('./auth_info_baileys', { recursive: true, force: true })
-        console.log('✅ Archivos de autenticación eliminados')
+        console.log('✅ Directorio auth_info_baileys eliminado COMPLETAMENTE')
       }
 
-      // Recrear directorio
-      if (!fs.existsSync('./auth_info_baileys')) {
-        fs.mkdirSync('./auth_info_baileys')
-      }
+      // 🔧 PASO 4: Recrear directorio limpio
+      this.initializeAuthDirectory()
+      console.log('✅ Directorio auth recreado limpio')
 
       // Notificar al frontend
       this.emit('whatsapp-status', 'session-cleared')
@@ -317,6 +341,29 @@ class WhatsAppService extends EventEmitter {
 
     } catch (error) {
       console.error('❌ Error en reconexión forzada:', error)
+      throw error
+    }
+  }
+
+  // 🔧 NUEVO: Método específico para forzar regeneración de QR
+  async forceNewQR() {
+    try {
+      console.log('🔄 FORZANDO REGENERACIÓN DE QR - Limpieza total...')
+      
+      // Paso 1: Limpiar completamente
+      await this.clearSession()
+      
+      // Paso 2: Esperar
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      
+      // Paso 3: Conectar para generar NUEVO QR
+      console.log('🆕 Iniciando conexión para NUEVO QR...')
+      await this.connect()
+      
+      return { success: true, message: 'Nuevo QR generado exitosamente' }
+      
+    } catch (error) {
+      console.error('❌ Error generando nuevo QR:', error)
       throw error
     }
   }
