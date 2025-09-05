@@ -14,6 +14,14 @@ class MessageFormatter {
     // Aplicar formato profesional
     formatted = this.applyProfessionalFormatting(formatted)
     
+    // 🤔 AGREGAR PREGUNTAS PERSONALIZADAS SI CORRESPONDE
+    if (context.personalizedQuestions && context.personalizedQuestions.length > 0) {
+      formatted += this.addPersonalizedQuestions(formatted, context.personalizedQuestions)
+    }
+    
+    // 🔧 NORMALIZAR PARA WHATSAPP (SOLUCIÓN AL PROBLEMA DE ALINEACIÓN)
+    formatted = this.normalizeForWhatsApp(formatted)
+    
     // Dividir en mensajes si es muy largo
     return this.splitIntoMessages(formatted)
   }
@@ -64,8 +72,12 @@ class MessageFormatter {
       }
     }
 
-    // Mejorar puntos clave con emojis
-    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '✨ **$1**')
+    // 🔧 CORREGIR INCONSISTENCIA DE NEGRITAS - LIMPIAR ESPACIOS ANTES DE PROCESAR
+    // Primero limpiar espacios antes de asteriscos para uniformidad
+    formatted = formatted.replace(/^\s+\*\*([^*]+)\*\*/gm, '**$1**')
+    
+    // Mejorar puntos clave con emojis (ahora todos uniformes)
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '• **$1**')
     formatted = formatted.replace(/^(\d+\.)/gm, '📌 $1')
     formatted = formatted.replace(/^([A-Z]\.|•)/gm, '▫️ $1')
     
@@ -76,26 +88,44 @@ class MessageFormatter {
   applyProfessionalFormatting(text) {
     let formatted = text
 
-    // Mejorar títulos y secciones
-    formatted = formatted.replace(/^([A-ZÁÉÍÓÚ][^:\n]{10,50}):$/gm, '\n🎯 **$1:**\n')
+    // 🔧 NORMALIZAR FORMATO PARA WHATSAPP
+    // Limpiar espacios inconsistentes antes de negritas
+    formatted = formatted.replace(/\s+\*(.*?)\*/g, '\n*$1*')
     
-    // Mejorar listas
-    formatted = formatted.replace(/^- /gm, '▫️ ')
-    formatted = formatted.replace(/^\* /gm, '✦ ')
+    // Asegurar salto de línea antes de títulos en negrita
+    formatted = formatted.replace(/([^\n])\*(\w[^*]+)\*/g, '$1\n\n*$2*')
     
-    // Mejorar ejemplos
-    formatted = formatted.replace(/ejemplo:/gi, '💡 **Ejemplo:**')
-    formatted = formatted.replace(/importante:/gi, '⚠️ **Importante:**')
-    formatted = formatted.replace(/nota:/gi, '📝 **Nota:**')
+    // Normalizar bullets y listas para consistencia
+    formatted = formatted.replace(/^\s*[•▫️✦]\s*/gm, '• ')
+    formatted = formatted.replace(/^\s*-\s*/gm, '• ')
+    
+    // Mejorar títulos y secciones con formato consistente
+    formatted = formatted.replace(/^([A-ZÁÉÍÓÚ][^:\n]{10,50}):$/gm, '\n*$1:*\n')
+    
+    // Asegurar espaciado correcto después de títulos en negrita
+    formatted = formatted.replace(/\*(.*?)\*:\s*\n/g, '*$1:*\n\n')
+    
+    // Normalizar opciones (Opción A, B, C, etc.)
+    formatted = formatted.replace(/^\s*(Opción\s+[A-Z][^:]*):?/gm, '\n*$1:*')
+    
+    // Mejorar ejemplos con formato consistente
+    formatted = formatted.replace(/ejemplo:/gi, '\n💡 *Ejemplo:*\n')
+    formatted = formatted.replace(/importante:/gi, '\n⚠️ *Importante:*\n')
+    formatted = formatted.replace(/nota:/gi, '\n📝 *Nota:*\n')
     
     // Mejorar conclusiones
-    formatted = formatted.replace(/en resumen/gi, '📋 **En resumen**')
-    formatted = formatted.replace(/conclusión/gi, '🎯 **Conclusión**')
+    formatted = formatted.replace(/en resumen/gi, '\n📋 *En resumen:*\n')
+    formatted = formatted.replace(/conclusión/gi, '\n🎯 *Conclusión:*\n')
     
-    // Agregar separadores visuales
-    formatted = formatted.replace(/\n\n([A-Z][^:\n]{20,})\n/g, '\n\n━━━━━━━━━━━━━━━━━━━━\n**$1**\n━━━━━━━━━━━━━━━━━━━━\n')
+    // 🔧 LIMPIAR ESPACIOS MÚLTIPLES Y SALTOS DE LÍNEA EXCESIVOS
+    formatted = formatted.replace(/\n{3,}/g, '\n\n')
+    formatted = formatted.replace(/\s+\n/g, '\n')
+    formatted = formatted.replace(/\n\s+/g, '\n')
     
-    return formatted
+    // Asegurar que las negritas estén alineadas correctamente
+    formatted = formatted.replace(/^\s+\*/gm, '*')
+    
+    return formatted.trim()
   }
 
   // Dividir mensaje en partes si es muy largo
@@ -159,31 +189,103 @@ class MessageFormatter {
     } else if (index > 1) {
       return `${message}\n\n✅ *Mensaje completo (${index}/${index})*\n\n¿Te gustaría profundizar en algún punto específico? 🤔`
     } else {
-      return `${message}\n\n¿Hay algo más en lo que pueda ayudarte? 😊`
+      // 📝 NO AGREGAR PREGUNTA HARDCODEADA CUANDO ES RESPUESTA DIRECTA
+      return message
     }
+  }
+
+  /**
+   * 🤔 AGREGAR PREGUNTAS PERSONALIZADAS AL FINAL DE LA RESPUESTA
+   */
+  addPersonalizedQuestions(responseText, questions) {
+    if (!questions || questions.length === 0) return ''
+    
+    // 🔄 LIMITAR A 3-4 PREGUNTAS PARA NO SATURAR
+    const selectedQuestions = questions.slice(0, 4)
+    
+    let questionSection = '\n\n📄 *Para brindarle una asesoría más personalizada, necesito conocer:*\n\n'
+    
+    selectedQuestions.forEach((question, index) => {
+      questionSection += `🔹 ${question}\n`
+    })
+    
+    questionSection += '\n🎯 *Con esta información podré diseñar una estrategia integral específica para su situación.*'
+    
+    return questionSection
+  }
+
+  /**
+   * 🔧 NORMALIZAR TEXTO PARA WHATSAPP (SOLUCIÓN FINAL)
+   * Corrige la inconsistencia de negritas que causan desalineación
+   */
+  normalizeForWhatsApp(text) {
+    let normalized = text
+    
+    // 🛠️ PASO 1: Limpiar y normalizar espacios
+    normalized = normalized.replace(/\r\n/g, '\n')
+    normalized = normalized.replace(/\t/g, ' ')
+    
+    // 🛠️ PASO 2: CORREGIR INCONSISTENCIA DE NEGRITAS - CAUSA RAÍZ
+    // Eliminar TODOS los espacios antes de asteriscos para uniformidad
+    normalized = normalized.replace(/^\s+\*/gm, '*')
+    normalized = normalized.replace(/\s+\*\*([^*\n]+)\*\*/g, '\n• **$1**')
+    
+    // Asegurar que todas las negritas se conviertan a viñetas consistentes
+    normalized = normalized.replace(/^\*\*([^*\n]+)\*\*:/gm, '• **$1:**')
+    normalized = normalized.replace(/([^\n])\s*\*\*([^*]+)\*\*/g, '$1\n\n• **$2**')
+    
+    // 🛠️ PASO 3: Normalizar listas y bullets
+    normalized = normalized.replace(/^\s*[•▫️✦●]\s*/gm, '• ')
+    normalized = normalized.replace(/^\s*-\s+/gm, '• ')
+    
+    // 🛠️ PASO 4: Espaciado consistente
+    normalized = normalized.replace(/\n{3,}/g, '\n\n')
+    normalized = normalized.replace(/^\s+/gm, '')
+    normalized = normalized.replace(/\s+$/gm, '')
+    
+    // 🛠️ PASO 5: Alineación final - TODOS al margen izquierdo
+    normalized = normalized.replace(/\n\s+\*/g, '\n*')
+    normalized = normalized.replace(/\n\s+•/g, '\n•')
+    
+    return normalized.trim()
   }
 
   // Formatear mensaje de bienvenida
   formatWelcomeMessage(clientName, availableTopics) {
-    return `👋 ¡Hola ${clientName}!
+    // 🆕 ESPECIALIDADES ACTUALIZADAS CON NUEVOS CONOCIMIENTOS
+    const defaultSpecialties = [
+      'Estrategias financieras avanzadas y apalancamiento',
+      'Estructuras offshore y blindaje patrimonial', 
+      'Holdings internacionales y optimización fiscal',
+      'Expansión empresarial desde Perú',
+      'Fideicomisos y fundaciones privadas',
+      'Compliance y estructuras regulatorias',
+      'Métodos de elusión fiscal internacional',
+      'Arbitraje jurisdiccional y paraísos fiscales',
+      'Transfer pricing y precios de transferencia',
+      'Planificación sucesoria multinacional'
+    ]
+    
+    const specialtiesToShow = availableTopics && availableTopics.length > 0 ? availableTopics : defaultSpecialties
+    
+    let welcomeMessage = `👋 ¡Hola ${clientName}!
 
-🎯 **Soy tu Asesor Empresarial Especializado**
+*Soy tu Asesor Empresarial Especializado*
 
 Estoy aquí para ayudarte con estrategias inteligentes y soluciones empresariales de alto nivel.
 
-━━━━━━━━━━━━━━━━━━━━
-🏢 **MIS ESPECIALIDADES:**
-━━━━━━━━━━━━━━━━━━━━
+*MIS ESPECIALIDADES:*
 
-${availableTopics.map(topic => `✦ ${topic}`).join('\n')}
+${specialtiesToShow.map(topic => `✦ ${topic}`).join('\n')}
 
-━━━━━━━━━━━━━━━━━━━━
-
-💡 **¿Cómo puedo ayudarte hoy?**
+*¿Cómo puedo ayudarte hoy?*
 
 Puedes preguntarme sobre cualquier tema empresarial, fiscal o de inversiones. Estoy preparado para darte respuestas detalladas y estrategias específicas.
 
 🚀 *¡Comencemos a optimizar tu negocio!*`
+    
+    // 🔧 APLICAR NORMALIZACIÓN PARA WHATSAPP
+    return this.normalizeForWhatsApp(welcomeMessage)
   }
 
   // Formatear mensaje de seguimiento
