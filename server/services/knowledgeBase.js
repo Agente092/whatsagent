@@ -10,46 +10,47 @@ class KnowledgeBase {
 
   loadKnowledge() {
     try {
-      console.log('📚 Loading knowledge base...')
+      console.log('📚 Loading comprehensive knowledge base...')
       
-      // 🆕 PATHS TO THE NEW CIA FINANCIAL STRATEGIES KNOWLEDGE BASE
-      const part1Path = path.join(process.cwd(), 'Base_Conocimientos_Estrategias_Financieras_CIA_PARTE_1.md')
-      const part2Path = path.join(process.cwd(), 'Base_Conocimientos_Estrategias_Financieras_CIA_PARTE_2.md')
-      const part3Path = path.join(process.cwd(), 'Base_Conocimientos_Estrategias_Financieras_CIA_PARTE_3.md')
+      // 🆕 PATHS TO ALL KNOWLEDGE BASE FILES
+      const knowledgeFiles = [
+        // CIA Financial Strategies (Original)
+        'Base_Conocimientos_Estrategias_Financieras_CIA_PARTE_1.md',
+        'Base_Conocimientos_Estrategias_Financieras_CIA_PARTE_2.md',
+        'Base_Conocimientos_Estrategias_Financieras_CIA_PARTE_3.md',
+        // Advanced Strategies (New)
+        'Base_Conocimientos_Estrategias_Avanzadas_PARTE_1.md',
+        'Base_Conocimientos_Estrategias_Avanzadas_PARTE_2.md',
+        'Base_Conocimientos_Estrategias_Avanzadas_PARTE_3.md',
+        // Consolidated PDF Content
+        'Contenido_Consolidado_PDFs.md',
+        'Contenido_Consolidado_PDFs_PARTE_2.md',
+        'Contenido_Consolidado_PDFs_PARTE_3.md'
+      ]
       
       let content = ''
+      let loadedFiles = 0
       
-      // Load Part 1 - CIA Financial Strategies
-      if (fs.existsSync(part1Path)) {
-        const part1Content = fs.readFileSync(part1Path, 'utf8')
-        content += part1Content + '\n\n'
-        console.log('✅ Loaded knowledge base part 1')
-      } else {
-        console.warn('⚠️ Knowledge base part 1 not found')
-      }
-      
-      // Load Part 2 - CIA Financial Strategies
-      if (fs.existsSync(part2Path)) {
-        const part2Content = fs.readFileSync(part2Path, 'utf8')
-        content += part2Content + '\n\n'
-        console.log('✅ Loaded knowledge base part 2')
-      } else {
-        console.warn('⚠️ Knowledge base part 2 not found')
-      }
-      
-      // Load Part 3 - CIA Financial Strategies
-      if (fs.existsSync(part3Path)) {
-        const part3Content = fs.readFileSync(part3Path, 'utf8')
-        content += part3Content
-        console.log('✅ Loaded knowledge base part 3')
-      } else {
-        console.warn('⚠️ Knowledge base part 3 not found')
-      }
+      // Load all knowledge files
+      knowledgeFiles.forEach((fileName, index) => {
+        const filePath = path.join(process.cwd(), fileName)
+        
+        if (fs.existsSync(filePath)) {
+          const fileContent = fs.readFileSync(filePath, 'utf8')
+          content += fileContent + '\n\n'
+          console.log(`✅ Loaded knowledge file ${index + 1}: ${fileName}`)
+          loadedFiles++
+        } else {
+          console.warn(`⚠️ Knowledge file not found: ${fileName}`)
+        }
+      })
       
       if (content.trim()) {
         this.knowledgeContent = this.processContent(content)
         this.isLoaded = true
-        console.log(`📖 Knowledge base loaded successfully (${this.knowledgeContent.length} characters)`)
+        console.log(`📖 Comprehensive knowledge base loaded successfully!`)
+        console.log(`📊 Loaded ${loadedFiles} knowledge files (${this.knowledgeContent.length} characters)`)
+        console.log(`🧪 Enhanced with advanced financial strategies and comprehensive content`)
       } else {
         console.error('❌ No knowledge content found')
         this.knowledgeContent = this.getFallbackContent()
@@ -101,98 +102,93 @@ class KnowledgeBase {
 
   getFallbackContent() {
     return `
-# BASE DE CONOCIMIENTOS CIA - ESTRATEGIAS FINANCIERAS
+# BASE DE CONOCIMIENTOS EXPANDIDA - ESTRATEGIAS FINANCIERAS Y EMPRESARIALES
 
-## ESTRATEGIA DE APALANCAMIENTO DE DEUDA SIN INTERÉS
+## ESTRATEGIAS PRINCIPALES DE APALANCAMIENTO
 
-### Fundamentos Técnicos
+### ESTRATEGIA DE APALANCAMIENTO DE DEUDA SIN INTERÉS
+
+#### Fundamentos Técnicos
 - Uso de líneas de crédito sin interés inicial
 - Transferencia de balances con 0% APR
 - Monetización inmediata de capital obtenido
 - Adaptación al contexto bancario peruano
 
-### Aplicación en Perú
+#### Aplicación en Perú
 - Bancos que ofrecen períodos de gracia
 - Uso de tarjetas de crédito empresariales
 - Combinación con inversión inmobiliaria
 
-## ESTRATEGIA DE APALANCAMIENTO DE CAPITAL CON VESTING
+### ESTRATEGIA DE APALANCAMIENTO DE CAPITAL CON VESTING
 
-### Estructura del Vesting
+#### Estructura del Vesting
 - Cliff vesting vs. graded vesting
 - Protección de capital invertido
 - Alineamiento de incentivos a largo plazo
 - Implementación en S.A.C. peruanas
 
-### Casos Prácticos
+#### Casos Prácticos
 - Startups tecnológicas
 - Empresas inmobiliarias
 - Proyectos de construcción
 
-## ESTRATEGIA DE PERCEPCIÓN DE VALOR
+## ESTRATEGIAS AVANZADAS DE ESTRUCTURACIÓN
 
-### Técnicas Psicológicas
-- Escasez artificial y exclusividad
-- FOMO (Fear of Missing Out)
-- Pricing psicológico
-- Marketing de influencia
+### ESTRATEGIA HOLDING-OPERADORA AVANZADA
 
-### Implementación
-- Productos de lujo en Lima
-- Servicios exclusivos
-- Clubs de membersía
-
-## ESTRATEGIA HOLDING-OPERADORA
-
-### Protección de Activos
+#### Protección de Activos
 - Empresa Operadora: Actividades de riesgo
 - Empresa Holding: Activos protegidos
 - Transferencias entre empresas relacionadas
 - Optimización fiscal legal
 
-### Estructuras Complejas
+#### Estructuras Complejas
 - Holdings multinivel
 - Fideicomisos complementarios
 - Empresas offshore
+- Arbitraje jurisdiccional
 
-## PERSUASIÓN PSICOLÓGICA Y CONTROL
+### BLINDAJE PATRIMONIAL INTEGRAL
 
-### Técnicas de Influencia
-- Narrativa emocional
-- Construcción de envidia social
-- Autoridad y credibilidad
-- Compromiso y coherencia
-
-### Aplicación Empresarial
-- Ventas de alto valor
-- Captación de inversores
-- Liderazgo organizacional
-
-## BLINDAJE PATRIMONIAL AVANZADO
-
-### Estructuras de Protección
+#### Estructuras de Protección
 - Fideicomisos irrevocables
 - Fundaciones familiares
 - Seguros de vida como activos
-- Propiedades en paraiso fiscales
+- Propiedades en paraísos fiscales
 
-### Técnicas Especializadas
-- Empresa fantasma
-- Cementerios como exenciones fiscales
-- Fundaciones con fines aparentemente benéficos
+#### Técnicas Especializadas
+- Separación patrimonial personal/empresarial
+- Empresas fantasma (riesgos legales)
+- Fundaciones con fines benéficos
+- Estructuras offshore complejas
 
-## PARAÍSOS FISCALES Y MOVIMIENTO DE CAPITALES
+## ESTRATEGIAS INTERNACIONALES
 
-### Jurisdicciones Preferenciales
+### PARAÍSOS FISCALES Y MOVIMIENTO DE CAPITALES
+
+#### Jurisdicciones Preferenciales
 - Panamá, Islas Caimán, Delaware
 - Singapur, Suiza, Luxemburgo
-- Estruturas de pricing transfer
+- Estructuras de pricing transfer
 
-### Métodos de Transferencia
+#### Métodos de Transferencia
 - Precios de transferencia
 - Royalties y licencias
 - Préstamos entre partes relacionadas
-- Facturas por servicios ficticios
+- Facturas por servicios de consultoría
+
+### EXPANSIÓN DESDE PERÚ
+
+#### Estructura de Control
+- Holdings en Perú como base
+- Filiales internacionales
+- LLCs en EE.UU. (Delaware, Wyoming)
+- Sociedades anónimas en Panamá
+
+#### Casos Específicos
+- Empresario inmobiliario expandiendo a Miami
+- Exportador agrícola optimizando fiscalmente
+- Tecnológico protegiendo propiedad intelectual
 
 ## CASOS ESPECÍFICOS DE PERÚ
 
@@ -208,7 +204,35 @@ class KnowledgeBase {
 - Beneficios por inversión en infraestructura
 - Exoneraciones regionales
 
-## METODOLOGÍAS DE INVESTIGACIÓN CIA
+## ESTRATEGIAS DE PERCEPCIÓN Y PERSUASIÓN
+
+### Técnicas Psicológicas
+- Escasez artificial y exclusividad
+- FOMO (Fear of Missing Out)
+- Pricing psicológico
+- Marketing de influencia
+
+### Aplicación Empresarial
+- Productos de lujo en Lima
+- Servicios exclusivos
+- Clubs de membersía
+- Expansión de marca internacional
+
+## FINTECH Y ALIANZAS BANCARIAS
+
+### Optimización de Estructuras Financieras
+- Empresas Fintech en Perú
+- Alianzas con bancos tradicionales
+- Servicios financieros digitales
+- Micropréstamos y pagos P2P
+
+### Regulación y Cumplimiento
+- Superintendencia de Banca (SBS)
+- Cumplimiento KYC y AML/CFT
+- Oficiales de Cumplimiento
+- Auditorías internas trimestrales
+
+## INVESTIGACIÓN Y DETECCIÓN
 
 ### Señales de Alerta
 - Estructuras empresariales complejas sin justificación
@@ -222,7 +246,13 @@ class KnowledgeBase {
 - Identificación de partes relacionadas
 - Verificación de actividad económica real
 
-IMPORTANTE: Esta información es para propósitos de investigación y educación de agentes autorizados. Todo uso debe cumplir con las leyes aplicables.
+### Organismos de Control
+- GAFI (Grupo de Acción Financiera Internacional)
+- OCDE y estándares BEPS
+- UIF-Perú y cooperación internacional
+- SUNAT y fiscalización avanzada
+
+IMPORTANTE: Esta información es para propósitos de asesoría empresarial, educación e investigación. Todo uso debe cumplir con las leyes aplicables. Se incluyen tanto métodos legales como referencia a prácticas ilegales únicamente para fines educativos y de detección.
 `
   }
 
@@ -280,6 +310,7 @@ IMPORTANTE: Esta información es para propósitos de investigación y educación
   // Get summary of available topics
   getTopicsSummary() {
     const topics = [
+      // 🆕 CIA Financial Strategies (Original)
       '🆕 Estrategia de Apalancamiento de Deuda sin Interés',
       '🆕 Estrategia de Apalancamiento de Capital con Vesting',
       '🆕 Estrategia de Percepción de Valor y Psicología',
@@ -293,16 +324,42 @@ IMPORTANTE: Esta información es para propósitos de investigación y educación
       '🆕 Técnicas de Facturación y Precios de Transferencia',
       '🆕 Metodologías de Investigación para Agentes CIA',
       '🆕 Señales de Alerta en Delitos Financieros',
-      '🆕 Marco Regulatorio Peruano (SUNAT, UIF, SBS)'
+      '🆕 Marco Regulatorio Peruano (SUNAT, UIF, SBS)',
+      
+      // 🤅 ADVANCED STRATEGIES (NEW)
+      '🤅 Estructuras Fintech y Alianzas Bancarias Avanzadas',
+      '🤅 Métodos de Elusión Fiscal Internacional',
+      '🤅 Arsenal Estratégico de Métodos Financieros',
+      '🤅 Técnicas de Pitufeo y Colocación Avanzada',
+      '🤅 Comercio de Papel y Trade-Based Laundering',
+      '🤅 Holdings Jerarquizados y Estructuras Complejas',
+      '🤅 Lavado de Activos a través de Inmobiliarias',
+      '🤅 Redes de Criptomonedas y Hawala Transnacional',
+      '🤅 Método Double Irish y Estrategias Históricas',
+      '🤅 Transfer Pricing y Precios de Transferencia',
+      '🤅 Expansión Internacional desde Perú',
+      '🤅 Arbitraje Jurisdiccional y Blindaje Global',
+      '🤅 Sistemas de Persuasión y Control Psicológico',
+      '🤅 Fideicomisos y Fundaciones Privadas Offshore',
+      '🤅 Detección y Contramedidas de Organismos de Control',
+      
+      // 📊 COMPREHENSIVE CONTENT
+      '📊 Estrategias Empresariales de Alto Impacto',
+      '📊 Optimización Fiscal Multinacional',
+      '📊 Protección Patrimonial Integral',
+      '📊 Inteligencia Financiera y Contra-inteligencia'
     ]
 
-    return `🆕 BASE DE CONOCIMIENTOS CIA - ESTRATEGIAS FINANCIERAS
+    return `🆕 BASE DE CONOCIMIENTOS EXPANDIDA - ESTRATEGIAS FINANCIERAS Y EMPRESARIALES
 
-Temas disponibles para investigación autorizada:
+🧠 CONOCIMIENTO INTEGRAL PARA ASESORÍA DE ÉLITE:
 
 ${topics.map(topic => `• ${topic}`).join('\n')}
 
-🔍 ¿Sobre qué estrategia financiera específica necesitas información para tu investigación?`
+🔍 ¿Sobre qué estrategia financiera específica necesitas información para tu consultoría empresarial?
+
+🌐 Cobertura global: Perú, EE.UU., Panamá, Zona Euro, Asia-Pacífico
+💼 Especializaciones: Fintech, Inmobiliario, Tecnología, Exportación, Alto Patrimonio`
   }
 
   // Reload knowledge base (useful for updates)
