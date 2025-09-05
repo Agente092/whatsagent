@@ -28,6 +28,14 @@ class GeminiService {
     // Inicializar búsqueda semántica
     this.semanticSearch = knowledgeBase ? new SemanticSearchService(knowledgeBase) : null
     
+    // Inicializar búsqueda semántica de forma asíncrona
+    if (this.semanticSearch) {
+      this.semanticSearch.initialize().catch(error => {
+        logger.warn('Failed to initialize semantic search, will continue without it', error)
+        this.semanticSearch = null
+      })
+    }
+    
     // 🧠 INICIALIZAR SISTEMAS INTELIGENTES
     this.humanReasoning = new HumanReasoningEngine(this, conversationMemory)
     this.personalitySystem = new AdaptivePersonalitySystem(conversationMemory, this.configService)
