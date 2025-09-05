@@ -28,7 +28,7 @@ class LegalFactChecker {
    */
   initializeVerifiedReferences() {
     try {
-      const knowledgeContext = this.knowledgeBase && this.knowledgeBase.getContext ? this.knowledgeBase.getContext() : ''
+      const knowledgeContext = this.knowledgeBase.getContext()
       if (!knowledgeContext) {
         logger.warn('Knowledge base not available for legal fact checking')
         return
