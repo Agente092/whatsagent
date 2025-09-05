@@ -121,6 +121,15 @@ export default function BotStatusPage() {
     }
   }
 
+  // 🔧 NUEVO: Regenerar QR específicamente
+  const handleRegenerateQR = () => {
+    if (socket) {
+      setIsConnecting(true)
+      setWhatsappStatus('connecting')
+      socket.emit('regenerate-qr')
+    }
+  }
+
   const getStatusBadge = () => {
     switch (whatsappStatus) {
       case 'connected':
@@ -330,6 +339,28 @@ export default function BotStatusPage() {
                             <strong>⚠️ Importante:</strong> Este código QR es único y temporal. 
                             No lo compartas con nadie más.
                           </p>
+                        </div>
+
+                        {/* 🔧 NUEVO: Botón para regenerar QR */}
+                        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                          <Button 
+                            onClick={handleRegenerateQR}
+                            disabled={isConnecting}
+                            variant="outline"
+                            className="w-full sm:w-auto"
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Regenerar QR
+                          </Button>
+                          <Button 
+                            onClick={handleForceReset}
+                            disabled={isConnecting}
+                            variant="destructive"
+                            className="w-full sm:w-auto"
+                          >
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            Reset Total
+                          </Button>
                         </div>
                       </div>
                     </div>
