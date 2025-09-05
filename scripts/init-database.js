@@ -53,33 +53,9 @@ async function initializeDatabase() {
           role: 'ADMIN'
         }
       })
-      console.log('✅ Usuario administrador creado: ' + adminEmail)
+      console.log(`✅ Usuario administrador creado: ${adminEmail}`)
     } else {
       console.log('ℹ️ Usuario administrador ya existe')
-    }
-
-    // Crear cliente de prueba "Luis" si no existe
-    const testClientPhone = '51998148917'
-    const existingClient = await prisma.client.findUnique({
-      where: { phone: testClientPhone }
-    })
-
-    if (!existingClient) {
-      const expiryDate = new Date()
-      expiryDate.setMonth(expiryDate.getMonth() + 1) // 1 mes de acceso
-      
-      await prisma.client.create({
-        data: {
-          name: 'Luis',
-          phone: testClientPhone,
-          isActive: true,
-          expiryDate: expiryDate,
-          messageCount: 0
-        }
-      })
-      console.log('✅ Cliente de prueba "Luis" creado exitosamente')
-    } else {
-      console.log('ℹ️ Cliente de prueba "Luis" ya existe')
     }
 
     console.log('🎉 Base de datos inicializada correctamente')
