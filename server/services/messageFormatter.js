@@ -76,9 +76,13 @@ class MessageFormatter {
     // Primero limpiar espacios antes de asteriscos para uniformidad
     formatted = formatted.replace(/^\s+\*\*([^*]+)\*\*/gm, '**$1**')
     
+    // 🔢 CORREGIR INCONSISTENCIA DE NÚMEROS - LISTAS NUMERADAS EN NEGRITAS
+    // Limpiar espacios antes de números y ponerlos en negritas
+    formatted = formatted.replace(/^\s*(\d+)\./gm, '**$1.**')
+    
     // Mejorar puntos clave con emojis (ahora todos uniformes)
     formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '• **$1**')
-    formatted = formatted.replace(/^(\d+\.)/gm, '📌 $1')
+    formatted = formatted.replace(/^\*\*(\d+)\.\*\*/gm, '📌 **$1.**')
     formatted = formatted.replace(/^([A-Z]\.|•)/gm, '▫️ $1')
     
     return formatted
@@ -216,7 +220,7 @@ class MessageFormatter {
 
   /**
    * 🔧 NORMALIZAR TEXTO PARA WHATSAPP (SOLUCIÓN FINAL)
-   * Corrige la inconsistencia de negritas que causan desalineación
+   * Corrige la inconsistencia de negritas, números Y sub-opciones anidadas
    */
   normalizeForWhatsApp(text) {
     let normalized = text
@@ -229,6 +233,15 @@ class MessageFormatter {
     // Eliminar TODOS los espacios antes de asteriscos para uniformidad
     normalized = normalized.replace(/^\s+\*/gm, '*')
     normalized = normalized.replace(/\s+\*\*([^*\n]+)\*\*/g, '\n• **$1**')
+    
+    // 🔢 PASO 2.5: CORREGIR INCONSISTENCIA DE LISTAS NUMERADAS
+    // Limpiar espacios antes de números y ponerlos en negritas para destacar
+    normalized = normalized.replace(/^\s*(\d+)\./gm, '**$1.**')
+    normalized = normalized.replace(/^\s*(\d+)\s*\./gm, '**$1.**')
+    
+    // 🔤 PASO 2.7: CORREGIR SUB-OPCIONES ANIDADAS (a.1, a.2, b.1, etc.)
+    // Detectar y formatear sub-opciones dentro de opciones principales
+    normalized = this.formatNestedOptions(normalized)
     
     // Asegurar que todas las negritas se conviertan a viñetas consistentes
     normalized = normalized.replace(/^\*\*([^*\n]+)\*\*:/gm, '• **$1:**')
@@ -246,8 +259,62 @@ class MessageFormatter {
     // 🛠️ PASO 5: Alineación final - TODOS al margen izquierdo
     normalized = normalized.replace(/\n\s+\*/g, '\n*')
     normalized = normalized.replace(/\n\s+•/g, '\n•')
+    normalized = normalized.replace(/\n\s+\d/g, '\n**$1')
     
     return normalized.trim()
+  }
+
+  /**
+   * 🔤 FORMATEAR SUB-OPCIONES ANIDADAS
+   * Detecta sub-elementos dentro de opciones principales y los numera correctamente
+   */
+  formatNestedOptions(text) {
+    let formatted = text
+    
+    // Detectar patrones como: "a) Título: - Sub1: texto - Sub2: texto"
+    // Y convertirlos a: "a) Título:\na.1) Sub1: texto\na.2) Sub2: texto"
+    
+    // Buscar opciones principales (a), b), c), etc.)
+    const optionPattern = /^([a-z])\)\s*([^:]+):\s*(.+?)(?=^[a-z]\)|$)/gms
+    
+    formatted = formatted.replace(optionPattern, (match, letter, title, content) => {
+      // Limpiar el contenido y detectar sub-elementos
+      let cleanContent = content.trim()
+      
+      // Detectar sub-elementos que empiezan con - o • seguidos de término en negritas o mayúsculas
+      const subElements = []
+      const subPattern = /[-•]\s*([A-Z][^:]+):\s*([^-•]+)/g
+      let subMatch
+      let subIndex = 1
+      
+      // Extraer todos los sub-elementos
+      while ((subMatch = subPattern.exec(cleanContent)) !== null) {
+        subElements.push({
+          original: subMatch[0],
+          term: subMatch[1].trim(),
+          description: subMatch[2].trim(),
+          formatted: `${letter}.${subIndex}) **${subMatch[1].trim()}:** ${subMatch[2].trim()}`
+        })
+        subIndex++
+      }
+      
+      if (subElements.length > 0) {
+        // Construir la opción reformateada
+        let result = `**${letter})** **${title.trim()}:**\n\n`
+        
+        // Agregar cada sub-elemento
+        subElements.forEach(sub => {
+          result += `${sub.formatted}\n\n`
+        })
+        
+        return result.trim()
+      } else {
+        // Si no hay sub-elementos, formato estándar
+        return `**${letter})** **${title.trim()}:** ${cleanContent}`
+      }
+    })
+    
+    return formatted
   }
 
   // Formatear mensaje de bienvenida
