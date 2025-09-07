@@ -540,7 +540,15 @@ class HumanReasoningEngine {
   }
 
   async generateBusinessFunctionalResponse(questionCategory, message, context) {
-    return `Como consultor empresarial especializado, analicemos el aspecto de ${questionCategory} que consultas...`
+    // 🆘 ELIMINAR RESPUESTA HARDCODEADA - Debe usar IA
+    logger.warn('⚠️ HumanReasoningEngine: generateBusinessFunctionalResponse called but should use AI instead', {
+      questionCategory: questionCategory,
+      message: message.substring(0, 100),
+      context: context ? Object.keys(context) : 'no context'
+    })
+    
+    // Retornar null para forzar el uso de IA
+    return null
   }
 
   extractSearchTerms(message) {
