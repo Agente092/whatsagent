@@ -325,10 +325,11 @@ app.get('/api/database/debug/:phone', async (req, res) => {
     }
     
     try {
-      // Test 1: Buscar cliente
+      // Test 1: Buscar cliente - 🔄 MIGRADO a phoneNumber
       logger.info('🔍 Test 1: Finding client...')
+      const phoneNumber = phone.replace(/\D/g, '') // Solo números
       const client = await dbMonitor.findUnique('client', {
-        where: { phone: phone }
+        where: { phoneNumber: phoneNumber }
       })
       results.findClient = { success: true, found: !!client, clientId: client?.id }
       logger.info('✅ Test 1 passed')
@@ -872,9 +873,12 @@ app.post('/api/clients', async (req, res) => {
       return res.status(400).json({ message: 'Todos los campos son requeridos' })
     }
 
-    // Check if phone already exists
+    // 🔄 MIGRADO: Usar el nuevo schema con phoneNumber
+    const phoneNumber = phone.replace(/\D/g, '') // Solo números
+    
+    // Check if phoneNumber already exists
     const existingClient = await prisma.client.findUnique({
-      where: { phone }
+      where: { phoneNumber: phoneNumber }
     })
 
     if (existingClient) {
@@ -884,15 +888,25 @@ app.post('/api/clients', async (req, res) => {
       })
     }
 
+    // 🔄 CREAR CON NUEVO SCHEMA
     const client = await prisma.client.create({
       data: {
         name,
-        phone,
+        phoneNumber: phoneNumber,  // ✅ NUEVO: phoneNumber requerido
+        phone: phone,              // ✅ OPCIONAL: phone para compatibilidad
         expiryDate: new Date(expiryDate),
-        isActive: true
+        isActive: true,
+        isNameConfirmed: true,     // ✅ NUEVO
+        firstSeen: new Date(),     // ✅ NUEVO
+        lastSeen: new Date(),      // ✅ NUEVO
+        messageCount: 0,           // ✅ NUEVO
+        status: 'active',          // ✅ NUEVO
+        topics: '[]',              // ✅ NUEVO
+        preferences: '{}'          // ✅ NUEVO
       }
     })
 
+    console.log('✅ Cliente creado exitosamente:', client.name)
     res.status(201).json(client)
   } catch (error) {
     console.error('Create client error:', error)
@@ -1167,9 +1181,10 @@ app.put('/api/clients/:id', async (req, res) => {
     })
     
     if (client) {
-      // Verificar si el nuevo teléfono ya existe para otro cliente
+      // 🔄 MIGRADO: Verificar si el nuevo phoneNumber ya existe para otro cliente
+      const newPhoneNumber = phone.replace(/\D/g, '')
       const existingClient = await prisma.client.findUnique({
-        where: { phone }
+        where: { phoneNumber: newPhoneNumber }
       })
       
       if (existingClient && existingClient.id !== id) {
@@ -1184,7 +1199,8 @@ app.put('/api/clients/:id', async (req, res) => {
         where: { id },
         data: { 
           name,
-          phone,
+          phoneNumber: newPhoneNumber, // 🔄 MIGRADO: usar phoneNumber
+          phone,                        // 🔄 Mantener para compatibilidad
           lastActivity: new Date()
         }
       })
@@ -1355,8 +1371,10 @@ whatsappService.on('message', async (message) => {
 
         // 🔥 PASO CRÍTICO: GUARDAR MENSAJE INMEDIATAMENTE PARA PRESERVAR CONTEXTO
         try {
+          // 🔄 MIGRADO: Buscar por phoneNumber
+          const phoneNumber = from.replace(/\D/g, '')
           const tempClient = await dbMonitor.findUnique('client', {
-            where: { phone: from }
+            where: { phoneNumber: phoneNumber }
           })
           
           if (tempClient) {
