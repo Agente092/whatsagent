@@ -73,6 +73,9 @@ class MessageFormatterCleaned {
   applyCleanFormatting(text) {
     let formatted = text
 
+    // 🚨 APLICAR REGLAS ESTRICTAS DE FORMATO PARA WHATSAPP
+    formatted = this.applyStrictWhatsAppFormatting(formatted)
+
     // ==================== SOLO TÍTULOS Y SECCIONES LIMPIAS ====================
     // Mejorar títulos principales sin agregar texto hardcodeado
     formatted = formatted.replace(/^([A-ZÁÉÍÓÚ][^:\n]{15,60}):$/gm, '\n*$1:*\n')
@@ -106,6 +109,52 @@ class MessageFormatterCleaned {
     // ==================== ESPACIADO PROFESIONAL ====================
     // Asegurar espaciado adecuado después de títulos
     formatted = formatted.replace(/(\*[^*]+\*:)\n([^\n])/g, '$1\n\n$2')
+    
+    return formatted
+  }
+
+  /**
+   * 📱 REGLAS ESTRICTAS DE FORMATO PARA WHATSAPP - VERSIÓN FINAL PERFECCIONADA
+   * Solución definitiva al problema de texto amontonado
+   */
+  applyStrictWhatsAppFormatting(text) {
+    let formatted = text.trim()
+    
+    console.log('🔧 Aplicando reglas estrictas de formato...')
+
+    // 🚨 PASO 1: SEPARAR TÍTULOS PRINCIPALES DE GUIONES
+    formatted = formatted.replace(/(• [^:]+:)\s*-\s*/g, '$1\n\n  - ')
+    
+    // 🚨 PASO 2: SEPARAR SUBTÍTULOS DE SU CONTENIDO
+    formatted = formatted.replace(/(-\s*[^:]+:)\s*([A-ZÁÉÍÓÚ][^.]*\.)/g, '$1\n    $2')
+    
+    // 🚨 PASO 3: INDENTAR SUBTÍTULOS QUE EMPIEZAN CON GUIÓN
+    formatted = formatted.replace(/^-\s*/gm, '  - ')
+    
+    // 🚨 PASO 4: SEPARAR ORACIONES LARGAS EN MÚLTIPLES SUBTÍTULOS
+    formatted = formatted.replace(/\.\s*-\s*/g, '.\n\n  - ')
+    
+    // 🚨 PASO 5: ESPACIAR ENTRE SECCIONES PRINCIPALES
+    formatted = formatted.replace(/\.\s*\n\s*(• [A-ZÁÉÍÓÚ])/g, '.\n\n$1')
+    
+    // 🚨 PASO 6: ASEGURAR CONTENIDO INDENTADO BAJO SUBTÍTULOS
+    formatted = formatted.replace(/(  - [^:]+:)\n([A-ZÁÉÍÓÚ])/g, '$1\n    $2')
+    
+    // 🚨 PASO 7: ESPACIAR SUBTÍTULOS CONSECUTIVOS
+    formatted = formatted.replace(/(\.)\n(  - [^:]+:)/g, '$1\n\n$2')
+    
+    // 🚨 PASO 8: CONVERTIR ESPACIOS MÚLTIPLES A SALTOS DE LÍNEA
+    // Esto es crítico: cambiar los 4 espacios por saltos de línea + indentación
+    formatted = formatted.replace(/    - /g, '\n\n  - ')
+    formatted = formatted.replace(/    ([A-ZÁÉÍÓÚ])/g, '\n    $1')
+    
+    // 🚨 PASO 9: LIMPIAR INDENTACIONES INCORRECTAS SOLO DE TÍTULOS
+    formatted = formatted.replace(/^\s+(•)/gm, '$1')
+    
+    // 🚨 PASO 10: NORMALIZAR ESPACIADO MÚLTIPLE FINAL
+    formatted = formatted.replace(/\n{4,}/g, '\n\n\n')
+    
+    console.log('✅ Reglas aplicadas exitosamente')
     
     return formatted
   }
