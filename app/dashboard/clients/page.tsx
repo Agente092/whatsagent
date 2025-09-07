@@ -74,13 +74,25 @@ export default function ClientsPage() {
       const response = await fetch('/api/clients')
       if (response.ok) {
         const data = await response.json()
-        setClients(data.clients || [])
+        // 🛡️ PROTECCIÓN: Verificar que data existe y tiene estructura correcta
+        if (data && data.success && Array.isArray(data.clients)) {
+          setClients(data.clients)
+        } else if (data && Array.isArray(data)) {
+          // Fallback para respuestas directas de array
+          setClients(data)
+        } else {
+          console.warn('Estructura de datos inesperada:', data)
+          setClients([])
+        }
       } else {
+        console.error('Error response:', response.status, response.statusText)
         showNotification('Error al cargar clientes', 'error')
+        setClients([])
       }
     } catch (error) {
       console.error('Error loading clients:', error)
       showNotification('Error de conexión', 'error')
+      setClients([])
     } finally {
       setLoading(false)
     }
@@ -121,7 +133,7 @@ export default function ClientsPage() {
     }
   }
 
-  const filteredClients = clients.filter(client => {
+  const filteredClients = (clients || []).filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.phoneNumber.includes(searchTerm)
     const matchesStatus = statusFilter === 'all' || client.status === statusFilter
