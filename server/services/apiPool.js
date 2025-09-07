@@ -345,10 +345,17 @@ class ApiPool {
         lastError = error
         logger.warn(`❌ Error in attempt ${attempt}: ${error.message}`)
         
-        // Marcar error en la API actual
+        // Marcar error en la API actual con logging detallado
         if (currentApiKey) {
           const api = this.apiInstances.find(a => a.apiKey.includes(currentApiKey.substring(0, 10)))
           if (api) {
+            logger.warn(`🚫 API ${api.id} (${api.apiKey}) deactivated permanently (${error.message.includes('invalid') ? 'invalid API key' : 'error'})`, {
+              apiId: api.id,
+              error: error.message,
+              errorType: this.getErrorType(error),
+              attempt: attempt,
+              maxRetries: maxRetries
+            })
             this.recordError(api.id, error)
           }
         }
@@ -368,13 +375,29 @@ class ApiPool {
         ) {
           if (attempt < maxRetries) {
             if (error.message.includes('429') || error.message.includes('quota')) {
-              logger.info(`🔑 Rate limit detected, rotating to next API immediately...`)
+              logger.info(`🔑 Rate limit detected, rotating to next API immediately...`, {
+                currentApi: currentApiKey?.substring(0, 10),
+                attempt: attempt,
+                errorType: 'RATE_LIMIT'
+              })
             } else if (error.message.includes('400') || error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID')) {
-              logger.info(`🔑 Invalid API Key detected, rotating to next API immediately...`)
+              logger.info(`🔑 Invalid API Key detected, rotating to next API immediately...`, {
+                currentApi: currentApiKey?.substring(0, 10),
+                attempt: attempt,
+                errorType: 'INVALID_KEY'
+              })
             } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
-              logger.info(`🔑 Disabled API Key detected, rotating to next API immediately...`)
+              logger.info(`🔑 Disabled API Key detected, rotating to next API immediately...`, {
+                currentApi: currentApiKey?.substring(0, 10),
+                attempt: attempt,
+                errorType: 'DISABLED_KEY'
+              })
             } else {
-              logger.info(`🔑 Service error detected, rotating to next API immediately...`)
+              logger.info(`🔑 Service error detected, rotating to next API immediately...`, {
+                currentApi: currentApiKey?.substring(0, 10),
+                attempt: attempt,
+                errorType: 'SERVICE_ERROR'
+              })
             }
             // 🔧 CRÍTICO: No hacer delay, rotar inmediatamente
             continue
@@ -385,7 +408,11 @@ class ApiPool {
         if (error.message.includes('Timeout') || error.message.includes('500') || error.message.includes('503')) {
           if (attempt < maxRetries) {
             const delay = 1000 * Math.pow(2, attempt - 1)
-            logger.info(`⏰ Waiting ${delay}ms before next attempt...`)
+            logger.info(`⏰ Waiting ${delay}ms before next attempt...`, {
+              errorType: 'TIMEOUT',
+              attempt: attempt,
+              delay: delay
+            })
             await new Promise(resolve => setTimeout(resolve, delay))
             continue
           }
@@ -397,7 +424,13 @@ class ApiPool {
     }
     
     // Si llegamos aquí, todos los intentos fallaron
-    logger.error(`🚨 All ${maxRetries} attempts failed: ${lastError?.message}`)
+    logger.error(`🚨 All ${maxRetries} attempts failed: ${lastError?.message}`, {
+      totalAttempts: maxRetries,
+      finalError: lastError?.message,
+      errorStack: lastError?.stack,
+      availableApis: this.getAvailableApisCount(),
+      totalApis: this.apiInstances.length
+    })
     
     // 🔧 ÚLTIMO RECURSO: Mostrar estadísticas para debugging
     const availableKeys = this.getAvailableApisCount()
@@ -407,6 +440,26 @@ class ApiPool {
     throw lastError || new Error('All API attempts failed')
   }
   
+  // 🔧 NUEVO: Obtener tipo de error para logging
+  getErrorType(error) {
+    if (error.message.includes('429') || error.message.includes('quota')) {
+      return 'RATE_LIMIT'
+    }
+    if (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID')) {
+      return 'INVALID_KEY'
+    }
+    if (error.message.includes('403') || error.message.includes('Forbidden')) {
+      return 'DISABLED_KEY'
+    }
+    if (error.message.includes('Timeout')) {
+      return 'TIMEOUT'
+    }
+    if (error.message.includes('500') || error.message.includes('503')) {
+      return 'SERVER_ERROR'
+    }
+    return 'UNKNOWN'
+  }
+
   // 🔧 NUEVO: Contar APIs disponibles
   getAvailableApisCount() {
     return this.apiInstances.filter(api => {
