@@ -98,14 +98,14 @@ class WhatsAppService extends EventEmitter {
         auth: state,
         printQRInTerminal: false,
         // 🔧 CONFIGURACIONES EXACTAS DEL PROYECTO-VENTAS (CRITICAL!)
-        connectTimeoutMs: 60000, // 60 segundos para conectar (por defecto 20s)
-        defaultQueryTimeoutMs: 60000, // 60 segundos para queries (por defecto 60s) 
-        keepAliveIntervalMs: 25000, // 25 segundos keep-alive (por defecto 30s)
+        connectTimeoutMs: 45000, // 🔧 REDUCIDO: 45 segundos (antes 60s) para detectar problemas más rápido
+        defaultQueryTimeoutMs: 30000, // 🔧 REDUCIDO: 30 segundos para queries (antes 60s)
+        keepAliveIntervalMs: 15000, // 🔧 REDUCIDO: 15 segundos keep-alive (antes 25s) - Más frecuente
         markOnlineOnConnect: true, // Marcar como online al conectar
         syncFullHistory: false, // No sincronizar historial completo
-        // Configuraciones de reintentos
-        retryRequestDelayMs: 500, // 500ms entre reintentos (por defecto 250ms)
-        maxMsgRetryCount: 3, // Máximo 3 reintentos por mensaje (por defecto 5)
+        // Configuraciones de reintentos más eficientes
+        retryRequestDelayMs: 250, // 🔧 REDUCIDO: 250ms entre reintentos (antes 500ms)
+        maxMsgRetryCount: 2, // 🔧 REDUCIDO: Máximo 2 reintentos por mensaje (antes 3)
         logger: {
           level: 'silent',
           child: () => ({
@@ -146,10 +146,29 @@ class WhatsAppService extends EventEmitter {
           this.lastDisconnectReason = statusCode
 
           console.log('📱 Conexión cerrada. Código:', statusCode, 'Razón:', DisconnectReason[statusCode] || 'Desconocida')
+          
+          // Logging detallado de la desconexión
+          const disconnectionInfo = {
+            statusCode: statusCode,
+            reason: DisconnectReason[statusCode] || 'Unknown',
+            lastError: lastDisconnect?.error?.message,
+            connectionAttempts: this.connectionAttempts,
+            reconnectAttempts: this.reconnectAttempts,
+            wasConnected: this.isConnected,
+            timestamp: new Date().toISOString()
+          }
+          
+          console.log('🔍 Disconnection details:', JSON.stringify(disconnectionInfo, null, 2))
 
           // Manejar código 408 (timedOut) - timeout de conexión
           if (statusCode === DisconnectReason.timedOut) {
-            console.log('⏰ TIMEOUT DETECTADO - Reconectando con delay reducido...')
+            console.log('⏰ TIMEOUT DETECTADO - Reconectando con delay reducido...', {
+              timeoutType: 'CONNECTION_TIMEOUT',
+              lastSeen: this.lastSeen,
+              connectionDuration: this.lastSeen ? Date.now() - new Date(this.lastSeen).getTime() : 'unknown',
+              reconnectAttempts: this.reconnectAttempts,
+              maxAttempts: this.maxReconnectAttempts
+            })
             this.isConnected = false
             // Para timeouts, usar delay más corto y menos intentos antes de dar up
             this.handleReconnection(true) // true indica que es un timeout
@@ -158,7 +177,12 @@ class WhatsAppService extends EventEmitter {
 
           // Manejar código 440 (connectionReplaced) - múltiples instancias
           if (statusCode === DisconnectReason.connectionReplaced) {
-            console.log('🚨 CONEXIÓN REEMPLAZADA - Posible múltiple instancia detectada')
+            console.log('🚨 CONEXIÓN REEMPLAZADA - Posible múltiple instancia detectada', {
+              errorType: 'CONNECTION_REPLACED',
+              action: 'STOPPING_RECONNECTIONS',
+              reconnectAttempts: this.reconnectAttempts,
+              connectionAttempts: this.connectionAttempts
+            })
             console.log('⚠️ Deteniendo reconexiones automáticas para evitar bucle infinito')
             this.isConnected = false
             this.isReconnecting = false
