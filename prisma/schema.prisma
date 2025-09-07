@@ -48,7 +48,10 @@ model Conversation {
   phone     String
   message   String
   response  String?
+  metadata  String?  // JSON metadata for processing info
   timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   
   @@map("conversations")
 }
