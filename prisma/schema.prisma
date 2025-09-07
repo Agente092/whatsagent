@@ -25,19 +25,31 @@ model User {
 model Client {
   id          String   @id @default(cuid())
   name        String
-  phone       String   @unique
-  expiryDate  DateTime
+  phoneNumber String   @unique  // 🔄 CAMBIADO: phoneNumber en lugar de phone
+  
+  // 🆕 NUEVOS CAMPOS para compatibilidad con ClientService
+  isNameConfirmed Boolean  @default(false)
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+  messageCount Int     @default(0)
+  status      String   @default("new")  // 'new', 'active', 'vip'
+  topics      String   @default("[]")   // JSON array como string
+  preferences String   @default("{}")   // JSON object como string
+  
+  // 🔄 CAMPOS ANTIGUOS (mantener para compatibilidad)
+  phone       String?  @unique  // Opcional para migración
+  expiryDate  DateTime?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  // Tracking fields
   lastActivity DateTime?
-  messageCount Int      @default(0)
   
   // Notification tracking
   reminderSent Boolean  @default(false)
   expiredNotificationSent Boolean @default(false)
+  
+  // 🆕 CAMPOS VIP
+  vipSince    DateTime?
 
   @@map("clients")
 }
