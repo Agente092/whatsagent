@@ -19,6 +19,7 @@ const HumanReasoningEngine = require('./services/humanReasoningEngine')
 const AdaptivePersonalitySystem = require('./services/adaptivePersonalitySystem')
 const logger = require('./services/logger')
 const HealthCheck = require('./services/healthCheck')
+const DatabaseMonitor = require('./services/databaseMonitor')
 
 // Import routes
 const apiStatsRoutes = require('./routes/apiStats')
@@ -35,6 +36,7 @@ const io = new Server(server, {
 })
 
 const prisma = new PrismaClient()
+const dbMonitor = new DatabaseMonitor(prisma)
 const PORT = process.env.PORT || 3001
 
 // 🧠 Initialize enhanced services with intelligent capabilities
@@ -266,6 +268,123 @@ const authenticateToken = (req, res, next) => {
 
 // API Stats Routes
 app.use('/api/pool', apiStatsRoutes)
+
+// 📊 Database monitoring endpoint
+app.get('/api/database/stats', async (req, res) => {
+  try {
+    const stats = dbMonitor.getStats()
+    const healthCheck = await dbMonitor.checkConnectionHealth()
+    
+    res.json({
+      success: true,
+      data: {
+        statistics: stats,
+        health: healthCheck,
+        timestamp: new Date().toISOString()
+      }
+    })
+  } catch (error) {
+    logger.error('❌ Error getting database stats:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
+// 🔧 Database monitoring reset endpoint
+app.post('/api/database/reset-stats', async (req, res) => {
+  try {
+    dbMonitor.resetStats()
+    res.json({
+      success: true,
+      message: 'Database monitor stats reset successfully'
+    })
+  } catch (error) {
+    logger.error('❌ Error resetting database stats:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
+// 🔍 Debug endpoint para probar operaciones de base de datos
+app.get('/api/database/debug/:phone', async (req, res) => {
+  try {
+    const { phone } = req.params
+    logger.info(`🔍 Testing database operations for phone: ${phone}`)
+    
+    // Probar operaciones una por una con logging detallado
+    let results = {
+      findClient: null,
+      createConversation: null,
+      errors: []
+    }
+    
+    try {
+      // Test 1: Buscar cliente
+      logger.info('🔍 Test 1: Finding client...')
+      const client = await dbMonitor.findUnique('client', {
+        where: { phone: phone }
+      })
+      results.findClient = { success: true, found: !!client, clientId: client?.id }
+      logger.info('✅ Test 1 passed')
+      
+      if (client) {
+        // Test 2: Crear conversación de prueba
+        logger.info('🔍 Test 2: Creating test conversation...')
+        const testConversation = await dbMonitor.create('conversation', {
+          data: {
+            clientId: client.id,
+            phone: phone,
+            message: '[DEBUG TEST]',
+            response: '[DEBUG TEST RESPONSE]',
+            metadata: JSON.stringify({
+              debug: true,
+              timestamp: new Date().toISOString()
+            })
+          }
+        })
+        results.createConversation = { success: true, conversationId: testConversation.id }
+        logger.info('✅ Test 2 passed')
+        
+        // Limpiar: eliminar conversación de prueba
+        await prisma.conversation.delete({
+          where: { id: testConversation.id }
+        })
+        logger.info('🗑️ Debug conversation cleaned up')
+      }
+      
+    } catch (testError) {
+      results.errors.push({
+        operation: 'database_test',
+        error: testError.message,
+        code: testError.code,
+        stack: testError.stack
+      })
+      logger.error('🔍 Database test failed:', testError)
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        phone: phone,
+        results: results,
+        stats: dbMonitor.getStats(),
+        timestamp: new Date().toISOString()
+      }
+    })
+    
+  } catch (error) {
+    logger.error('❌ Error in database debug endpoint:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    })
+  }
+})
 
 // Legal fact checking endpoint
 app.get('/api/legal/stats', authenticateToken, async (req, res) => {
@@ -1274,8 +1393,65 @@ whatsappService.on('message', async (message) => {
         const { from, body } = message
         logger.whatsapp('info', 'Incoming message received', from, { message: body })
 
+        // 🔥 PASO CRÍTICO: GUARDAR MENSAJE INMEDIATAMENTE PARA PRESERVAR CONTEXTO
+        try {
+          const tempClient = await dbMonitor.findUnique('client', {
+            where: { phone: from }
+          })
+          
+          if (tempClient) {
+            // 🔒 GARANTIZAR PERSISTENCIA INMEDIATA - CRÍTICO PARA TIMEOUTS
+            const conversationRecord = await dbMonitor.create('conversation', {
+              data: {
+                clientId: tempClient.id,
+                phone: from,
+                message: body,
+                response: '[PROCESSING...]', // Placeholder
+                metadata: JSON.stringify({
+                  processingStarted: new Date().toISOString(),
+                  status: 'processing',
+                  preservedContext: true // MARCADOR IMPORTANTE
+                })
+              }
+            })
+            
+            // Agregar a memoria conversacional inmediatamente
+            const intent = geminiService.detectIntent(body)
+            conversationMemory.addMessage(from, body, '[PROCESSING...]', intent, {
+              timestamp: new Date(),
+              processing: true,
+              conversationId: conversationRecord.id
+            })
+            
+            logger.info('💾 Contexto preservado inmediatamente con ID:', conversationRecord.id)
+          }
+        } catch (contextError) {
+          logger.error('❌ Error preservando contexto:', {
+            error: contextError.message,
+            stack: contextError.stack,
+            phone: from,
+            message: body?.substring(0, 100)
+          })
+          // 🆘 FALLBACK: Intentar guardar solo en memoria
+          try {
+            const intent = geminiService.detectIntent(body)
+            conversationMemory.addMessage(from, body, '[PROCESSING...]', intent, {
+              timestamp: new Date(),
+              processing: true,
+              fallbackMode: true
+            })
+            logger.info('📝 Contexto guardado en memoria como fallback')
+          } catch (memoryError) {
+            logger.error('❌ Error crítico en preservación de contexto:', {
+              error: memoryError.message,
+              stack: memoryError.stack,
+              phone: from
+            })
+          }
+        }
+
         // Check if client has access
-        const client = await prisma.client.findUnique({
+        const client = await dbMonitor.findUnique('client', {
           where: { phone: from }
         })
 
@@ -1301,7 +1477,7 @@ whatsappService.on('message', async (message) => {
         }
 
         // Update last activity
-        await prisma.client.update({
+        await dbMonitor.update('client', {
           where: { id: client.id },
           data: {
             lastActivity: new Date(),
@@ -1327,37 +1503,44 @@ whatsappService.on('message', async (message) => {
           if (humanReasoningResult.confidence > 0.8 && humanReasoningResult.suggestedResponse) {
             logger.info('🎯 Usando respuesta directa del razonamiento humano')
             
-            await whatsappService.sendMessage(from, humanReasoningResult.suggestedResponse)
-            
-            // Registrar en base de datos y memoria
-            await Promise.all([
-              prisma.conversation.create({
-                data: {
-                  clientId: client.id,
-                  phone: from,
-                  message: body,
-                  response: humanReasoningResult.suggestedResponse,
-                  metadata: JSON.stringify({
-                    source: 'human_reasoning',
-                    reasoning: humanReasoningResult,
-                    processingTime: Date.now() - startTime
-                  })
-                }
-              }),
-              conversationMemory.addMessage(from, body, humanReasoningResult.suggestedResponse, 'contextual_response', {
-                reasoning: humanReasoningResult,
-                source: 'human_reasoning'
+            // 🆘 VERIFICAR QUE NO SEA RESPUESTA HARDCODEADA
+            if (humanReasoningResult.suggestedResponse === null || 
+                humanReasoningResult.suggestedResponse.includes('Como consultor empresarial especializado, analicemos')) {
+              logger.warn('⚠️ Respuesta hardcodeada detectada, usando IA en su lugar')
+              // Continuar con el procesamiento normal de IA
+            } else {
+              await whatsappService.sendMessage(from, humanReasoningResult.suggestedResponse)
+              
+              // Registrar en base de datos y memoria
+              await Promise.all([
+                prisma.conversation.create({
+                  data: {
+                    clientId: client.id,
+                    phone: from,
+                    message: body,
+                    response: humanReasoningResult.suggestedResponse,
+                    metadata: JSON.stringify({
+                      source: 'human_reasoning',
+                      reasoning: humanReasoningResult,
+                      processingTime: Date.now() - startTime
+                    })
+                  }
+                }),
+                conversationMemory.addMessage(from, body, humanReasoningResult.suggestedResponse, 'contextual_response', {
+                  reasoning: humanReasoningResult,
+                  source: 'human_reasoning'
+                })
+              ])
+              
+              logger.whatsapp('info', 'Mensaje procesado con razonamiento humano', from, {
+                clientName: client.name,
+                duration: Date.now() - startTime,
+                processingMode: 'human_reasoning'
               })
-            ])
-            
-            logger.whatsapp('info', 'Mensaje procesado con razonamiento humano', from, {
-              clientName: client.name,
-              duration: Date.now() - startTime,
-              processingMode: 'human_reasoning'
-            })
-            
-            resolve()
-            return
+              
+              resolve()
+              return
+            }
           }
         }
 
@@ -1512,18 +1695,60 @@ whatsappService.on('message', async (message) => {
         
         const responses = await geminiService.getResponse(body, knowledgeContext, from, clientDataForAI, companyDataForAI)
 
-        // 📱 PASO 5: ENVIAR RESPUESTA(S) CON FORMATO INTELIGENTE
-        if (Array.isArray(responses)) {
-          for (let i = 0; i < responses.length; i++) {
-            await whatsappService.sendMessage(from, responses[i])
+        // 📱 PASO 5: ENVIAR RESPUESTA(S) CON FORMATO INTELIGENTE Y PROTECCIÓN
+        try {
+          if (Array.isArray(responses)) {
+            for (let i = 0; i < responses.length; i++) {
+              // 🔒 ENVIO PROTEGIDO CON VERIFICACIÓN DE CONEXIÓN
+              if (!whatsappService.isConnected) {
+                logger.warn('⚠️ WhatsApp desconectado antes del envío, reintentando...')
+                await new Promise(resolve => setTimeout(resolve, 2000)) // Esperar 2s
+                
+                // Verificar nuevamente
+                if (!whatsappService.isConnected) {
+                  throw new Error('WhatsApp no disponible después de espera')
+                }
+              }
+              
+              await whatsappService.sendMessage(from, responses[i])
 
-            // Pausa inteligente entre mensajes múltiples
-            if (i < responses.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 1500))
+              // Pausa inteligente entre mensajes múltiples
+              if (i < responses.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1500))
+              }
             }
+          } else {
+            // 🔒 ENVIO PROTEGIDO PARA MENSAJE ÚNCO
+            if (!whatsappService.isConnected) {
+              logger.warn('⚠️ WhatsApp desconectado antes del envío, reintentando...')
+              await new Promise(resolve => setTimeout(resolve, 2000)) // Esperar 2s
+              
+              if (!whatsappService.isConnected) {
+                throw new Error('WhatsApp no disponible después de espera')
+              }
+            }
+            
+            await whatsappService.sendMessage(from, responses)
           }
-        } else {
-          await whatsappService.sendMessage(from, responses)
+        } catch (sendError) {
+          logger.error('❌ Error enviando mensaje:', sendError)
+          
+          // 💾 GUARDAR RESPUESTA AUNQUE NO SE PUEDA ENVIAR
+          responseText = Array.isArray(responses) ? responses.join(' | ') : responses
+          
+          // Programar reintento de envío
+          setTimeout(async () => {
+            try {
+              if (whatsappService.isConnected) {
+                await whatsappService.sendMessage(from, '🔄 Reenvío de respuesta anterior:\n\n' + responseText)
+                logger.info('✅ Respuesta reenviada exitosamente')
+              }
+            } catch (retryError) {
+              logger.error('❌ Error en reintento de envío:', retryError)
+            }
+          }, 10000) // Reintentar en 10 segundos
+          
+          // Continuar con el guardado en BD
         }
 
         // 📊 PASO 6: REGISTRAR CONVERSACIÓN CON METADATOS ENRIQUECIDOS
@@ -1545,14 +1770,136 @@ whatsappService.on('message', async (message) => {
           clientSophistication: personalityContext?.clientAdaptations?.businessSophistication || 'unknown'
         }
 
-        await prisma.conversation.create({
-          data: {
-            clientId: client.id,
-            phone: from,
-            message: body,
-            response: responseText,
-            metadata: JSON.stringify(processingMetadata)
+        // 🔥 ACTUALIZAR REGISTRO EXISTENTE EN LUGAR DE CREAR NUEVO
+        try {
+          // Buscar el registro de procesamiento que creamos al inicio
+          const existingRecord = await prisma.conversation.findFirst({
+            where: {
+              clientId: client.id,
+              phone: from,
+              message: body,
+              response: '[PROCESSING...]'
+            },
+            orderBy: { createdAt: 'desc' }
+          })
+          
+          if (existingRecord) {
+            // 🔒 ACTUALIZACIÓN PROTEGIDA CONTRA TIMEOUTS
+            await Promise.race([
+              prisma.conversation.update({
+                where: { id: existingRecord.id },
+                data: {
+                  response: responseText,
+                  metadata: JSON.stringify({
+                    ...processingMetadata,
+                    processingCompleted: new Date().toISOString(),
+                    status: 'completed',
+                    contextPreserved: true
+                  })
+                }
+              }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('DB update timeout')), 5000)
+              )
+            ]).catch(async (updateError) => {
+              logger.warn('⚠️ Timeout en actualización, creando registro nuevo')
+              // Fallback: crear nuevo registro
+              await prisma.conversation.create({
+                data: {
+                  clientId: client.id,
+                  phone: from,
+                  message: body,
+                  response: responseText,
+                  metadata: JSON.stringify({
+                    ...processingMetadata,
+                    fallbackRecord: true,
+                    originalId: existingRecord.id
+                  })
+                }
+              })
+            })
+            
+            logger.info('💾 Registro de conversación actualizado exitosamente')
+          } else {
+            // Fallback: crear nuevo registro
+            await prisma.conversation.create({
+              data: {
+                clientId: client.id,
+                phone: from,
+                message: body,
+                response: responseText,
+                metadata: JSON.stringify(processingMetadata)
+              }
+            })
           }
+        } catch (dbError) {
+          logger.error('❌ Error actualizando base de datos:', {
+            error: dbError.message,
+            code: dbError.code,
+            stack: dbError.stack,
+            phone: from,
+            clientId: client?.id,
+            operation: 'update_conversation'
+          })
+          // 🆘 FALLBACK CRÍTICO: Asegurar que al menos se guarde
+          try {
+            await prisma.conversation.create({
+              data: {
+                clientId: client.id,
+                phone: from,
+                message: body,
+                response: responseText,
+                metadata: JSON.stringify({
+                  ...processingMetadata,
+                  emergencyFallback: true,
+                  originalError: dbError.message
+                })
+              }
+            })
+            logger.info('🆘 Conversación guardada con fallback de emergencia')
+          } catch (fallbackError) {
+            logger.error('❌❌ ERROR CRÍTICO: No se pudo guardar conversación:', {
+              error: fallbackError.message,
+              code: fallbackError.code,
+              stack: fallbackError.stack,
+              phone: from,
+              clientId: client?.id,
+              operation: 'create_fallback_conversation'
+            })
+            
+            // 🆘 ÚLTIMO RECURSO: Intentar al menos preservar en memoria
+            try {
+              conversationMemory.addMessage(from, body, responseText, intent, {
+                ...processingMetadata,
+                emergencyMemoryOnly: true,
+                dbError: fallbackError.message,
+                timestamp: new Date()
+              })
+              logger.info('🆘 Conversación preservada solo en memoria como último recurso')
+            } catch (memoryEmergencyError) {
+              logger.error('❌❌❌ FALLO TOTAL: No se pudo preservar ni en BD ni en memoria:', {
+                error: memoryEmergencyError.message,
+                stack: memoryEmergencyError.stack,
+                phone: from,
+                operation: 'emergency_memory_save'
+              })
+              // Enviar notificación de emergencia al cliente
+              try {
+                await whatsappService.sendMessage(from, 
+                  '⚠️ Disculpa, hubo un problema técnico guardando nuestra conversación. Por favor, repite tu última consulta.'
+                )
+              } catch (notificationError) {
+                logger.error('❌ No se pudo notificar al cliente del error:', notificationError)
+              }
+            }
+          }
+        }
+        
+        // 💾 ACTUALIZAR MEMORIA CONVERSACIONAL FINAL
+        conversationMemory.addMessage(from, body, responseText, intent, {
+          ...processingMetadata,
+          finalUpdate: true,
+          processing: false
         })
 
         // 📋 REGISTRAR ÉXITO DE PERSONALIDAD
