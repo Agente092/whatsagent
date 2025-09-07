@@ -221,6 +221,7 @@ class MessageFormatter {
   /**
    * 🔧 NORMALIZAR TEXTO PARA WHATSAPP (SOLUCIÓN FINAL)
    * Corrige la inconsistencia de negritas, números Y sub-opciones anidadas
+   * SOLUCIÓN A PROBLEMAS DE FORMATO: Títulos sin numeración, subtítulos amontonados
    */
   normalizeForWhatsApp(text) {
     let normalized = text
@@ -229,34 +230,66 @@ class MessageFormatter {
     normalized = normalized.replace(/\r\n/g, '\n')
     normalized = normalized.replace(/\t/g, ' ')
     
-    // 🛠️ PASO 2: CORREGIR INCONSISTENCIA DE NEGRITAS - CAUSA RAÍZ
+    // 🔢 PASO 2: DETECTAR Y NUMERAR TÍTULOS PRINCIPALES
+    // Títulos en mayúsculas que terminan con ":" deben numerarse
+    let titleCounter = 1
+    
+    // Primero, separar títulos del texto anterior
+    normalized = normalized.replace(/([.!?])\s*([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚ\s]{15,}):/g, '$1\n\n$2:')
+    
+    // Numerar títulos principales
+    normalized = normalized.replace(/^([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚ\s]{15,}):(?!\*)\s*$/gm, function(match, title) {
+      const result = `**${titleCounter}. ${title.trim()}:**\n`
+      titleCounter++
+      return result
+    })
+    
+    // 🔢 PASO 2.1: ASEGURAR NUMERACIÓN DE TÍTULOS EXISTENTES
+    normalized = normalized.replace(/^\s*(\d+)\s*\.?\s*([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚ\s]{10,}):?\s*$/gm, '**$1. $2:**\n')
+    
+    // 🛠️ PASO 3: CORREGIR INCONSISTENCIA DE NEGRITAS - CAUSA RAÍZ
     // Eliminar TODOS los espacios antes de asteriscos para uniformidad
     normalized = normalized.replace(/^\s+\*/gm, '*')
-    normalized = normalized.replace(/\s+\*\*([^*\n]+)\*\*/g, '\n• **$1**')
     
-    // 🔢 PASO 2.5: CORREGIR INCONSISTENCIA DE LISTAS NUMERADAS
-    // Limpiar espacios antes de números y ponerlos en negritas para destacar
+    // 🔹 PASO 3.1: CONVERTIR SUBTÍTULOS EN VIÑETAS CON SEPARACIÓN
+    // Detectar subtítulos como "- Reducción de la base imponible:"
+    normalized = normalized.replace(/\s*-\s*([A-Z][a-záéíóú][^:]{8,40}):/g, '\n\n• **$1:**')
+    
+    // Detectar otros subtítulos (palabras capitalizadas seguidas de ":")
+    normalized = normalized.replace(/([.!?])\s*([A-Z][a-záéíóú\s]{8,40}):(?!\*)/g, '$1\n\n• **$2:**')
+    
+    // 🔹 PASO 3.2: DETECTAR Y FORMATEAR CONCEPTOS CLAVE AL INICIO DE LÍNEA
+    normalized = normalized.replace(/^\s*([A-Z][a-záéíóú][^:]{8,40}):(?!\*)/gm, '• **$1:**')
+    
+    // 🔢 PASO 4: CORREGIR LISTAS NUMERADAS Y LETRADAS
+    // Limpiar espacios antes de números y ponerlos en negritas
     normalized = normalized.replace(/^\s*(\d+)\./gm, '**$1.**')
     normalized = normalized.replace(/^\s*(\d+)\s*\./gm, '**$1.**')
     
-    // 🔤 PASO 2.7: CORREGIR SUB-OPCIONES ANIDADAS (a.1, a.2, b.1, etc.)
-    // Detectar y formatear sub-opciones dentro de opciones principales
-    normalized = this.formatNestedOptions(normalized)
+    // 🔤 PASO 4.1: CORREGIR OPCIONES LETRADAS CON PARÉNTESIS a) b) c)
+    normalized = normalized.replace(/^\s*([a-z])\)\s*/gm, '**$1)**')
+    normalized = normalized.replace(/([^\n])\s+([a-z])\)\s*/g, '$1\n\n**$2)**')
     
-    // Asegurar que todas las negritas se conviertan a viñetas consistentes
-    normalized = normalized.replace(/^\*\*([^*\n]+)\*\*:/gm, '• **$1:**')
-    normalized = normalized.replace(/([^\n])\s*\*\*([^*]+)\*\*/g, '$1\n\n• **$2**')
+    // 🔤 PASO 4.2: CORREGIR OPCIONES LETRADAS CON PUNTO a. b. c.
+    normalized = normalized.replace(/^\s*([a-z])\.\s*/gm, '**$1.**')
+    normalized = normalized.replace(/([^\n])\s+([a-z])\.\s*/g, '$1\n\n**$2.**')
     
-    // 🛠️ PASO 3: Normalizar listas y bullets
-    normalized = normalized.replace(/^\s*[•▫️✦●]\s*/gm, '• ')
-    normalized = normalized.replace(/^\s*-\s+/gm, '• ')
+    // 🔢 PASO 4.3: CORREGIR NÚMEROS EN MEDIO DEL TEXTO
+    normalized = normalized.replace(/([a-záéíóú\.])\.?\s*(\d+)\.\s*([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚ\s]+):/g, '$1.\n\n**$2. $3:**')
     
-    // 🛠️ PASO 4: Espaciado consistente
-    normalized = normalized.replace(/\n{3,}/g, '\n\n')
+    // 🔹 PASO 5: NORMALIZAR VIÑETAS Y BULLETS
+    normalized = normalized.replace(/^\s*[-•▫️✦●]\s*/gm, '• ')
+    
+    // 🔹 PASO 5.1: ASEGURAR SEPARACIÓN ENTRE VIÑETAS
+    normalized = normalized.replace(/(•\s[^\n]+)([A-Z][a-z])/g, '$1\n\n• **$2')
+    
+    // 🛠️ PASO 6: ESPACIADO CONSISTENTE Y LIMPIEZA FINAL
+    // Eliminar saltos de línea excesivos pero mantener separación
+    normalized = normalized.replace(/\n{4,}/g, '\n\n\n')
     normalized = normalized.replace(/^\s+/gm, '')
     normalized = normalized.replace(/\s+$/gm, '')
     
-    // 🛠️ PASO 5: Alineación final - TODOS al margen izquierdo
+    // 🛠️ PASO 7: ALINEACIÓN FINAL - TODOS al margen izquierdo
     normalized = normalized.replace(/\n\s+\*/g, '\n*')
     normalized = normalized.replace(/\n\s+•/g, '\n•')
     normalized = normalized.replace(/\n\s+\d/g, '\n**$1')
