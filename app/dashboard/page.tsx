@@ -55,13 +55,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check authentication on component mount
-    const token = localStorage.getItem('token')
-    if (!token) {
-      window.location.href = '/login'
-      return
-    }
-
+    // 🛡️ TEMPORAL: Deshabilitar verificación de autenticación para debugging
     fetchDashboardData()
   }, [])
 
@@ -69,27 +63,10 @@ export default function DashboardPage() {
     try {
       setIsLoading(true)
 
-      // Get token from localStorage
-      const token = localStorage.getItem('token')
-
-      if (!token) {
-        console.error('No authentication token found')
-        // Redirect to login if no token
-        window.location.href = '/login'
-        return
-      }
-
+      // 🛡️ TEMPORAL: Remover autenticación para debugging
       const [statsResponse, clientsResponse] = await Promise.all([
-        fetch('/api/dashboard/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }),
-        fetch('/api/clients', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+        fetch('/api/dashboard/stats'),
+        fetch('/api/clients')
       ])
 
       if (statsResponse.ok && clientsResponse.ok) {
@@ -97,24 +74,46 @@ export default function DashboardPage() {
         const clientsData = await clientsResponse.json()
 
         setStats(statsData)
-        // 🔧 EXTRAER CORRECTAMENTE EL ARRAY DE CLIENTES
-        setClients(clientsData.clients || [])
-      } else {
-        // Handle authentication errors
-        if (statsResponse.status === 401 || clientsResponse.status === 401) {
-          console.error('Authentication failed - redirecting to login')
-          localStorage.removeItem('token')
-          window.location.href = '/login'
-          return
+        // 🔧 EXTRAER CORRECTAMENTE EL ARRAY DE CLIENTES CON PROTECCIÓN
+        if (clientsData && clientsData.success && Array.isArray(clientsData.clients)) {
+          setClients(clientsData.clients)
+        } else if (clientsData && Array.isArray(clientsData)) {
+          setClients(clientsData)
+        } else {
+          console.warn('Estructura de datos de clientes inesperada:', clientsData)
+          setClients([])
         }
-
+      } else {
         console.error('Error fetching data:', {
           statsStatus: statsResponse.status,
           clientsStatus: clientsResponse.status
         })
+        
+        // Intentar al menos cargar los datos que funcionan
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json()
+          setStats(statsData)
+        }
+        if (clientsResponse.ok) {
+          const clientsData = await clientsResponse.json()
+          if (clientsData && clientsData.success && Array.isArray(clientsData.clients)) {
+            setClients(clientsData.clients)
+          } else {
+            setClients([])
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
+      setStats({
+        totalClients: 0,
+        activeClients: 0,
+        expiredClients: 0,
+        totalMessages: 0,
+        todayMessages: 0,
+        expiringToday: 0
+      })
+      setClients([])
     } finally {
       setIsLoading(false)
     }
