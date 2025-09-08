@@ -1225,26 +1225,44 @@ app.put('/api/clients/:id', async (req, res) => {
   }
 })
 
-// 🆕 NUEVA RUTA: Eliminar cliente por ID (UNIFICADO CON PRISMA)
+// 🆕 NUEVA RUTA: Eliminar cliente (UNIFICADO CON CLIENTSERVICE)
 app.delete('/api/clients/:id', async (req, res) => {
   try {
     const { id } = req.params
     
-    // Buscar y eliminar cliente
-    const client = await prisma.client.findUnique({
-      where: { id }
-    })
+    console.log(`🗑️ Intentando eliminar cliente: ${id}`)
+    
+    // 🔄 USAR CLIENTSERVICE para eliminación
+    const client = await clientService.findClientByPhone(id)
     
     if (client) {
-      await prisma.client.delete({
-        where: { id }
-      })
+      // Eliminar del sistema Prisma también si existe
+      try {
+        const prismaClient = await prisma.client.findUnique({
+          where: { phoneNumber: id }
+        })
+        
+        if (prismaClient) {
+          await prisma.client.delete({
+            where: { phoneNumber: id }
+          })
+          console.log(`✅ Cliente eliminado de Prisma: ${id}`)
+        }
+      } catch (prismaError) {
+        console.log(`⚠️ No se pudo eliminar de Prisma (puede que no exista): ${prismaError.message}`)
+      }
+      
+      // Eliminar del ClientService (archivo JSON)
+      await clientService.deleteClient(id)
+      
+      console.log(`✅ Cliente eliminado exitosamente: ${client.name} (${id})`)
       
       res.json({ 
         success: true, 
-        message: 'Cliente eliminado exitosamente' 
+        message: 'Cliente eliminado exitosamente'
       })
     } else {
+      console.log(`❌ Cliente no encontrado: ${id}`)
       res.status(404).json({ 
         success: false, 
         message: 'Cliente no encontrado' 
@@ -1254,7 +1272,7 @@ app.delete('/api/clients/:id', async (req, res) => {
     console.error('Client delete error:', error)
     res.status(500).json({ 
       success: false, 
-      message: 'Error al eliminar cliente' 
+      message: 'Error al eliminar cliente: ' + error.message
     })
   }
 })
@@ -1367,7 +1385,22 @@ whatsappService.on('message', async (message) => {
     const processMessage = new Promise(async (resolve, reject) => {
       try {
         const { from, body } = message
-        logger.whatsapp('info', 'Incoming message received', from, { message: body })
+        
+        // 🔍 LOGGING MEJORADO: Identificar tipo de origen
+        let messageType = 'UNKNOWN'
+        if (from.includes('@g.us')) {
+          messageType = 'GROUP'
+        } else if (from.endsWith('@s.whatsapp.net')) {
+          messageType = 'PRIVATE'
+        } else if (from.includes('@broadcast')) {
+          messageType = 'BROADCAST'
+        }
+        
+        logger.whatsapp('info', `Mensaje recibido - Tipo: ${messageType}`, from, { 
+          message: body.substring(0, 100),
+          messageType: messageType,
+          isGroup: messageType === 'GROUP'
+        })
 
         // 🔥 PASO CRÍTICO: GUARDAR MENSAJE INMEDIATAMENTE PARA PRESERVAR CONTEXTO
         try {
