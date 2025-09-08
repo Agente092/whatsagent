@@ -4,7 +4,7 @@
 services:
   # Backend Service
   - type: web
-    name: whatsapp-advisor-backend
+    name: fitpro-backend
     runtime: node
     plan: starter
     region: oregon
@@ -58,7 +58,7 @@ services:
 
   # Frontend Service (Web Service - CORREGIDO)
   - type: web
-    name: whatsagent
+    name: grupohibrida-frontend
     runtime: node
     buildCommand: npm install && npm run build
     startCommand: node .next/standalone/server.js
