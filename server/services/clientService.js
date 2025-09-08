@@ -316,6 +316,33 @@ class ClientService {
   }
 
   /**
+   * 🗑️ Eliminar cliente
+   */
+  async deleteClient(phoneNumber) {
+    try {
+      const clientId = phoneNumber.replace(/\D/g, '')
+      
+      const client = await this.prisma.client.findUnique({
+        where: { phoneNumber: clientId }
+      })
+      
+      if (client) {
+        await this.prisma.client.delete({
+          where: { phoneNumber: clientId }
+        })
+        
+        console.log(`🗑️ Cliente eliminado: ${client.name} (${phoneNumber})`)
+        return true
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Error deleting client:', error)
+      return false
+    }
+  }
+
+  /**
    * 🔄 Formatear respuesta del cliente (Prisma → ClientService format)
    */
   formatClientResponse(prismaClient) {
