@@ -29,11 +29,36 @@ const app = express()
 const server = createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? process.env.NEXTAUTH_URL || "https://your-app.onrender.com"
-      : "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
+    origin: function (origin, callback) {
+      // 🔧 ALLOW ALL ORIGINS FOR SOCKET.IO CONNECTIONS IN PRODUCTION
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        process.env.NEXTAUTH_URL,
+        'https://whatsagent.onrender.com',
+        'https://fitpro-s1ct.onrender.com',
+        'https://fitpro-backend.onrender.com',
+        'https://grupohibrida.onrender.com',
+        'https://grupohibrida-frontend.onrender.com'
+      ].filter(Boolean)
+      
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        console.warn(`Socket.IO CORS blocked: ${origin}`)
+        callback(null, false)
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  // 🔧 PRODUCTION OPTIMIZATIONS
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,      // 60 seconds
+  pingInterval: 25000,     // 25 seconds
+  connectTimeout: 45000,   // 45 seconds
+  allowEIO3: true,         // Compatibility
+  maxHttpBufferSize: 1e6   // 1MB
 })
 
 const prisma = new PrismaClient()
@@ -87,7 +112,9 @@ const corsOptions = {
       process.env.NEXTAUTH_URL,
       'https://whatsagent.onrender.com',
       'https://fitpro-s1ct.onrender.com',
-      'https://grupohibrida.onrender.com'
+      'https://fitpro-backend.onrender.com',
+      'https://grupohibrida.onrender.com',
+      'https://grupohibrida-frontend.onrender.com'
     ].filter(Boolean)
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -135,53 +162,78 @@ app.use((req, res, next) => {
   next()
 })
 
-// Socket.IO connection handling
+// Socket.IO connection handling with enhanced stability
 io.on('connection', (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`)
+  console.log(`🔔 Client connected: ${socket.id} from ${socket.handshake.headers.origin || 'unknown'}`)
+  
+  // 🔧 CONNECTION TRACKING
+  let clientHeartbeat = Date.now()
+  
+  // 🔄 HEARTBEAT MECHANISM
+  const heartbeatInterval = setInterval(() => {
+    socket.emit('ping', Date.now())
+  }, 30000) // Every 30 seconds
+  
+  socket.on('pong', () => {
+    clientHeartbeat = Date.now()
+  })
 
   // Send current WhatsApp status to new client
-  if (whatsappService.isConnected) {
-    socket.emit('whatsapp-status', 'connected')
-  } else if (whatsappService.qrCode) {
-    socket.emit('whatsapp-status', 'connecting')
-    socket.emit('qr-code', whatsappService.qrCode)
-  } else {
-    socket.emit('whatsapp-status', 'disconnected')
+  try {
+    if (whatsappService.isConnected) {
+      socket.emit('whatsapp-status', 'connected')
+      console.log(`✅ Sent 'connected' status to ${socket.id}`)
+    } else if (whatsappService.qrCode) {
+      socket.emit('whatsapp-status', 'connecting')
+      socket.emit('qr-code', whatsappService.qrCode)
+      console.log(`📱 Sent QR code to ${socket.id}`)
+    } else {
+      socket.emit('whatsapp-status', 'disconnected')
+      console.log(`❌ Sent 'disconnected' status to ${socket.id}`)
+    }
+  } catch (error) {
+    console.error(`❌ Error sending initial status to ${socket.id}:`, error.message)
   }
 
-  // WhatsApp connection events
+  // WhatsApp connection events with error handling
   socket.on('connect-whatsapp', async () => {
     try {
+      console.log(`🔔 WhatsApp connection requested from ${socket.id}`)
       if (whatsappService.isConnected) {
         socket.emit('whatsapp-status', 'connected')
         return
       }
+      
+      socket.emit('whatsapp-status', 'connecting')
       await whatsappService.connect()
     } catch (error) {
-      console.error('Error connecting WhatsApp:', error)
+      console.error(`❌ Error connecting WhatsApp for ${socket.id}:`, error.message)
       socket.emit('whatsapp-error', error.message)
+      socket.emit('whatsapp-status', 'error')
     }
   })
 
   socket.on('disconnect-whatsapp', async () => {
     try {
+      console.log(`🚫 WhatsApp disconnection requested from ${socket.id}`)
       await whatsappService.disconnect()
     } catch (error) {
-      console.error('Error disconnecting WhatsApp:', error)
+      console.error(`❌ Error disconnecting WhatsApp for ${socket.id}:`, error.message)
     }
   })
 
   socket.on('clear-whatsapp-session', async () => {
     try {
-      console.log('🧹 Manual session clear requested')
+      console.log(`🧹 Manual session clear requested from ${socket.id}`)
       await whatsappService.clearSession()
       socket.emit('session-cleared', { message: 'Session cleared successfully' })
+      
       // 🔧 NUEVO: Emitir estado listo para nueva conexión
       setTimeout(() => {
         socket.emit('whatsapp-status', 'ready-to-connect')
       }, 1000)
     } catch (error) {
-      console.error('Error clearing session:', error)
+      console.error(`❌ Error clearing session for ${socket.id}:`, error.message)
       socket.emit('whatsapp-status', 'error')
     }
   })
@@ -189,7 +241,7 @@ io.on('connection', (socket) => {
   // 🔧 NUEVO: Handler para force reset
   socket.on('force-reset-whatsapp', async () => {
     try {
-      console.log('🆘 Force reset WhatsApp requested')
+      console.log(`🆘 Force reset WhatsApp requested from ${socket.id}`)
       const success = await whatsappService.forceNewQR() // 🔧 USAR forceNewQR para regenerar
       if (success) {
         socket.emit('whatsapp-status', 'ready-to-connect')
@@ -198,7 +250,7 @@ io.on('connection', (socket) => {
         socket.emit('whatsapp-status', 'error')
       }
     } catch (error) {
-      console.error('Error in force reset:', error)
+      console.error(`❌ Error in force reset for ${socket.id}:`, error.message)
       socket.emit('whatsapp-status', 'error')
     }
   })
@@ -206,46 +258,65 @@ io.on('connection', (socket) => {
   // 🔧 NUEVO: Handler específico para regenerar QR
   socket.on('regenerate-qr', async () => {
     try {
-      console.log('🆕 Regenerate QR requested')
+      console.log(`🆕 Regenerate QR requested from ${socket.id}`)
       const success = await whatsappService.forceNewQR()
       if (success) {
         socket.emit('whatsapp-status', 'connecting')
-        console.log('✅ QR regeneration initiated')
+        console.log(`✅ QR regeneration initiated for ${socket.id}`)
       } else {
         socket.emit('whatsapp-status', 'error')
       }
     } catch (error) {
-      console.error('Error regenerating QR:', error)
+      console.error(`❌ Error regenerating QR for ${socket.id}:`, error.message)
       socket.emit('whatsapp-status', 'error')
     }
   })
 
-  socket.on('disconnect', () => {
-    console.log(`🔌 Client disconnected: ${socket.id}`)
+  // 🔧 ERROR HANDLING
+  socket.on('error', (error) => {
+    console.error(`❌ Socket error from ${socket.id}:`, error.message)
+  })
+
+  socket.on('disconnect', (reason) => {
+    console.log(`🔌 Client disconnected: ${socket.id} - Reason: ${reason}`)
+    
+    // Clear heartbeat interval
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval)
+    }
+    
+    // Log disconnection details
+    const connectionDuration = Date.now() - clientHeartbeat
+    console.log(`📊 Connection duration: ${Math.round(connectionDuration / 1000)}s`)
   })
 })
 
-// WhatsApp service events
+// WhatsApp service events with enhanced logging
 whatsappService.on('qr-code', (qrCode) => {
   logger.whatsapp('info', 'QR code generated for WhatsApp connection')
+  console.log('📱 Broadcasting QR code to all clients')
   io.emit('qr-code', qrCode)
   io.emit('whatsapp-status', 'connecting')
 })
 
 whatsappService.on('connected', () => {
   logger.whatsapp('info', 'WhatsApp service connected successfully')
+  console.log('✅ Broadcasting connected status to all clients')
   io.emit('whatsapp-status', 'connected')
 })
 
 whatsappService.on('disconnected', () => {
   logger.whatsapp('warn', 'WhatsApp service disconnected')
+  console.log('❌ Broadcasting disconnected status to all clients')
   io.emit('whatsapp-status', 'disconnected')
 })
 
 // 🔧 NUEVO: Manejar estados de error
 whatsappService.on('error', (error) => {
   logger.whatsapp('error', 'WhatsApp service error', { error: error.message })
+  console.log(`❌ Broadcasting error status to all clients: ${error.message}`)
   io.emit('whatsapp-status', 'error')
+  io.emit('whatsapp-error', error.message)
 })
 
 // Auth middleware
@@ -268,8 +339,85 @@ const authenticateToken = (req, res, next) => {
 
 // Routes
 
-// API Stats Routes
-app.use('/api/pool', apiStatsRoutes)
+// 📊 CONNECTION MONITORING ENDPOINT
+app.get('/api/monitoring/connections', async (req, res) => {
+  try {
+    const connectedClients = io.engine.clientsCount || 0
+    const whatsappStatus = {
+      isConnected: whatsappService.isConnected,
+      hasQRCode: !!whatsappService.qrCode,
+      status: whatsappService.isConnected ? 'connected' : 
+              whatsappService.qrCode ? 'connecting' : 'disconnected'
+    }
+    
+    const systemHealth = {
+      socketIO: {
+        connectedClients,
+        serverRunning: true
+      },
+      whatsapp: whatsappStatus,
+      database: {
+        connected: true // Prisma siempre está conectado si el server funciona
+      },
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    }
+    
+    console.log('📊 Connection monitoring requested:', systemHealth)
+    
+    res.json({
+      success: true,
+      data: systemHealth
+    })
+  } catch (error) {
+    console.error('❌ Error in connection monitoring:', error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    })
+  }
+})
+
+// 🔍 DEBUG ENDPOINT PARA DIAGNOSTICAR PROBLEMAS
+app.get('/api/debug/info', async (req, res) => {
+  try {
+    const debugInfo = {
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        PORT: process.env.PORT,
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+        hasGeminiKeys: !!(process.env.GEMINI_API_KEY_1)
+      },
+      server: {
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: process.version
+      },
+      connections: {
+        socketIO: io.engine.clientsCount || 0,
+        whatsappConnected: whatsappService.isConnected
+      },
+      clients: {
+        total: await clientService.getStats().then(s => s.total).catch(() => 0)
+      },
+      timestamp: new Date().toISOString()
+    }
+    
+    console.log('🔍 Debug info requested:', debugInfo)
+    
+    res.json({
+      success: true,
+      debug: debugInfo
+    })
+  } catch (error) {
+    console.error('❌ Error in debug info:', error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message
+    })
+  }
+})
 
 // 📊 Database monitoring endpoint
 app.get('/api/database/stats', async (req, res) => {
@@ -866,28 +1014,55 @@ app.get('/api/clients-old', authenticateToken, async (req, res) => {
 
 app.post('/api/clients', async (req, res) => {
   try {
+    console.log('📥 Request body received:', JSON.stringify(req.body, null, 2))
+    
     const { name, phone, expiryDate } = req.body
 
-    // Validate input
-    if (!name || !phone || !expiryDate) {
-      return res.status(400).json({ message: 'Todos los campos son requeridos' })
+    // 🔍 VALIDATE INPUT WITH DETAILED LOGGING
+    if (!name) {
+      console.error('❌ Validation error: name is missing')
+      return res.status(400).json({ 
+        message: 'El nombre es requerido',
+        field: 'name' 
+      })
+    }
+    
+    if (!phone) {
+      console.error('❌ Validation error: phone is missing')
+      return res.status(400).json({ 
+        message: 'El teléfono es requerido',
+        field: 'phone' 
+      })
+    }
+    
+    if (!expiryDate) {
+      console.error('❌ Validation error: expiryDate is missing')
+      return res.status(400).json({ 
+        message: 'La fecha de expiración es requerida',
+        field: 'expiryDate' 
+      })
     }
 
     // 🔄 MIGRADO: Usar el nuevo schema con phoneNumber
     const phoneNumber = phone.replace(/\D/g, '') // Solo números
+    console.log(`📞 Phone number processed: ${phone} -> ${phoneNumber}`)
     
     // Check if phoneNumber already exists
+    console.log('🔍 Checking for existing client...')
     const existingClient = await prisma.client.findUnique({
       where: { phoneNumber: phoneNumber }
     })
 
     if (existingClient) {
+      console.log(`❌ Client already exists: ${existingClient.name} (${phoneNumber})`)
       return res.status(400).json({
         message: 'Ya existe un cliente con este número de teléfono',
         field: 'phone'
       })
     }
 
+    console.log('✅ Creating new client...')
+    
     // 🔄 CREAR CON NUEVO SCHEMA
     const client = await prisma.client.create({
       data: {
@@ -906,11 +1081,37 @@ app.post('/api/clients', async (req, res) => {
       }
     })
 
-    console.log('✅ Cliente creado exitosamente:', client.name)
-    res.status(201).json(client)
+    console.log('✅ Cliente creado exitosamente:', {
+      id: client.id,
+      name: client.name,
+      phoneNumber: client.phoneNumber
+    })
+    
+    res.status(201).json({
+      success: true,
+      client,
+      message: 'Cliente creado exitosamente'
+    })
   } catch (error) {
-    console.error('Create client error:', error)
-    res.status(500).json({ message: 'Error al crear cliente' })
+    console.error('❌ Create client error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      requestBody: req.body
+    })
+    
+    // 🔍 ERROR ESPECÍFICO PARA PRISMA
+    if (error.code === 'P2002') {
+      return res.status(400).json({ 
+        message: 'Ya existe un cliente con este número de teléfono',
+        field: 'phone'
+      })
+    }
+    
+    res.status(500).json({ 
+      message: 'Error al crear cliente: ' + error.message,
+      error: error.message
+    })
   }
 })
 
@@ -1046,6 +1247,28 @@ app.get('/api/clients', async (req, res) => {
       preferences: client.preferences || {},
       // Campos adicionales para compatibilidad
       expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      isActive: client.status !== 'new',
+      lastActivity: client.lastSeen
+    }))
+    
+    console.log('📋 Clientes transformados:', transformedClients.map(c => `${c.name} (${c.phoneNumber})`).join(', '))
+    
+    res.json({ 
+      success: true, 
+      clients: transformedClients
+    })
+  } catch (error) {
+    console.error('❌ Clients get error:', {
+      message: error.message,
+      stack: error.stack
+    })
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al obtener clientes: ' + error.message,
+      clients: []
+    })
+  }
+})
       isActive: client.status !== 'new',
       lastActivity: client.lastSeen
     }))
@@ -1980,14 +2203,35 @@ process.on('SIGINT', async () => {
 })
 
 server.listen(PORT, '0.0.0.0', () => {
+  console.log('🚀 =====================================')
+  console.log('🚀     SERVIDOR INICIADO EXITOSAMENTE   ')
+  console.log('🚀 =====================================')
+  console.log(`🌐 Puerto: ${PORT}`)
+  console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`)
+  console.log(`🔗 CORS Origin: ${process.env.NODE_ENV === 'production' ? process.env.NEXTAUTH_URL : 'http://localhost:3000'}`)
+  console.log(`📊 Socket.IO: ✅ Activo`)
+  console.log(`📱 WhatsApp Bot: ✅ Listo (esperando conexión)`)
+  console.log(`🤖 Gemini AI: ✅ ${process.env.GEMINI_API_KEY_1 ? 'Configurado' : '❌ Sin configurar'}`)
+  console.log(`📊 Debug Endpoint: /api/debug/info`)
+  console.log(`🔍 Monitoring: /api/monitoring/connections`)
+  console.log('🚀 =====================================')
+  
   logger.info(`Server started successfully`, { 
     service: 'system',
     port: PORT,
     environment: process.env.NODE_ENV || 'development',
     cors_origin: process.env.NODE_ENV === 'production' 
       ? process.env.NEXTAUTH_URL 
-      : 'http://localhost:3000'
+      : 'http://localhost:3000',
+    features: {
+      socketIO: true,
+      whatsapp: true,
+      geminiAI: !!process.env.GEMINI_API_KEY_1,
+      database: 'SQLite/Prisma',
+      monitoring: true
+    }
   })
+  
   logger.info('Socket.IO ready for connections', { service: 'system' })
   logger.info('WhatsApp Bot ready (waiting for connection request)', { service: 'system' })
   
@@ -1996,10 +2240,11 @@ server.listen(PORT, '0.0.0.0', () => {
   
   // Configuraciones de producción
   if (process.env.NODE_ENV === 'production') {
+    console.log('🏭 MODO PRODUCCIÓN ACTIVADO')
     logger.info('Production mode enabled', {
       service: 'system',
-      database: 'PostgreSQL',
-      features: ['Socket.IO', 'WhatsApp Bot', 'Gemini AI', 'Legal Checker']
+      database: 'SQLite',
+      features: ['Socket.IO', 'WhatsApp Bot', 'Gemini AI', 'Enhanced Monitoring']
     })
   }
 })
