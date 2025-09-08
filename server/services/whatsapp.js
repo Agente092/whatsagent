@@ -245,10 +245,22 @@ class WhatsAppService extends EventEmitter {
           const body = this.extractMessageText(message)
           
           if (body && from) {
+            // 🚫 FILTRO CRÍTICO: Solo procesar mensajes PRIVADOS, NO grupos
+            if (from.includes('@g.us')) {
+              console.log(`🚫 Mensaje de GRUPO ignorado: ${from} - "${body.substring(0, 50)}..."`)
+              return // NO procesar mensajes de grupos
+            }
+            
+            // ✅ VERIFICACIÓN ADICIONAL: Solo mensajes privados directos
+            if (!from.endsWith('@s.whatsapp.net')) {
+              console.log(`🚫 Mensaje no privado ignorado: ${from} - Tipo: ${from.includes('@g.us') ? 'GRUPO' : 'DESCONOCIDO'}`)
+              return
+            }
+            
             // Clean phone number format
             const cleanPhone = from.replace('@s.whatsapp.net', '')
             
-            console.log(`📨 Message from ${cleanPhone}: ${body}`)
+            console.log(`✅ Mensaje PRIVADO procesado de ${cleanPhone}: ${body.substring(0, 100)}...`)
             
             this.emit('message', {
               from: cleanPhone,
