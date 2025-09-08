@@ -112,9 +112,7 @@ const corsOptions = {
       process.env.NEXTAUTH_URL,
       'https://whatsagent.onrender.com',
       'https://fitpro-s1ct.onrender.com',
-      'https://fitpro-backend.onrender.com',
-      'https://grupohibrida.onrender.com',
-      'https://grupohibrida-frontend.onrender.com'
+      'https://grupohibrida.onrender.com'
     ].filter(Boolean)
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -1262,25 +1260,6 @@ app.get('/api/clients', async (req, res) => {
       message: error.message,
       stack: error.stack
     })
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al obtener clientes: ' + error.message,
-      clients: []
-    })
-  }
-})
-      isActive: client.status !== 'new',
-      lastActivity: client.lastSeen
-    }))
-    
-    console.log('📋 Clientes transformados:', transformedClients.map(c => `${c.name} (${c.phoneNumber})`).join(', '))
-    
-    res.json({ 
-      success: true, 
-      clients: transformedClients
-    })
-  } catch (error) {
-    console.error('Clients get error:', error)
     res.status(500).json({ 
       success: false, 
       message: 'Error al obtener clientes: ' + error.message,
