@@ -78,8 +78,11 @@ export default function Sidebar({ isMobileMenuOpen = false, setIsMobileMenuOpen 
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed lg:static inset-y-0 left-0 z-[95] w-72 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col shadow-xl lg:shadow-none",
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed lg:static inset-y-0 left-0 z-[95] w-72 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out flex flex-col shadow-xl lg:shadow-none",
+        // En desktop (lg+): siempre visible
+        // En mobile: mostrar/ocultar según isMobileMenuOpen
+        "lg:translate-x-0",
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full">
           {/* Logo - Mobile padding adjustment */}
