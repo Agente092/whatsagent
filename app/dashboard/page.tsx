@@ -176,12 +176,7 @@ export default function DashboardPage() {
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
       />
       
-      {/* Sidebar - Hidden on mobile, shown on lg+ */}
-      <div className="hidden lg:block flex-shrink-0">
-        <Sidebar />
-      </div>
-      
-      {/* Mobile Sidebar - Shown when menu is open */}
+      {/* Unified Sidebar - Responsive */}
       <Sidebar 
         isMobileMenuOpen={isMobileMenuOpen} 
         setIsMobileMenuOpen={setIsMobileMenuOpen} 
