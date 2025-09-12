@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { QrCode, Smartphone, Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import MobileMenuButton from '@/components/MobileMenuButton'
 import { io, Socket } from 'socket.io-client'
 
 export default function BotStatusPage() {
@@ -15,6 +16,7 @@ export default function BotStatusPage() {
   const [qrCode, setQrCode] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
   const [mounted, setMounted] = useState(false) // 🔧 NUEVO: Prevenir errores de hidratación
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false) // 🔧 NUEVO: Estado para menú móvil
 
   // 🔧 NUEVO: Asegurar que el componente está montado
   useEffect(() => {
@@ -168,7 +170,7 @@ export default function BotStatusPage() {
   // 🔧 NUEVO: Prevenir renderizado hasta que esté montado
   if (!mounted) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <RefreshCw className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
@@ -180,13 +182,23 @@ export default function BotStatusPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+    <div className="flex min-h-screen bg-gray-50 w-full max-w-full overflow-x-hidden">
+      {/* Mobile Menu Button - Always visible on mobile */}
+      <MobileMenuButton 
+        isOpen={isMobileMenuOpen} 
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+      />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Unified Sidebar - Responsive */}
+      <Sidebar 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        setIsMobileMenuOpen={setIsMobileMenuOpen} 
+      />
+      
+      <div className="flex-1 flex flex-col overflow-hidden w-full max-w-full min-w-0">
         <Header />
         
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 w-full max-w-full">
           <div className="max-w-4xl mx-auto space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Estado del WhatsApp Bot</h1>
