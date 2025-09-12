@@ -186,114 +186,122 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center h-32 sm:h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+              <span className="text-sm sm:text-base text-gray-600">Cargando clientes...</span>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gray-50 w-full max-w-full overflow-x-hidden">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 max-w-7xl space-y-4 sm:space-y-6 w-full max-w-full">
+        {/* Header - Responsive */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <Button 
               onClick={() => router.push('/dashboard')} 
               variant="outline"
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 mb-2 sm:mb-0"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Volver al Dashboard</span>
+              <span className="hidden sm:inline">Volver al Dashboard</span>
+              <span className="sm:hidden">Volver</span>
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestión de Clientes</h1>
-              <p className="text-gray-600">Administra y monitorea la base de clientes</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Gestión de Clientes</h1>
+              <p className="text-sm sm:text-base text-gray-600">Administra y monitorea la base de clientes</p>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {/* Stats Cards - Responsive Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <Users className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Total</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600">Total</p>
+                  <p className="text-lg sm:text-2xl font-bold truncate">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                <div>
-                  <p className="text-sm text-gray-600">Nuevos</p>
-                  <p className="text-2xl font-bold">{stats.new}</p>
+                <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600">Nuevos</p>
+                  <p className="text-lg sm:text-2xl font-bold truncate">{stats.new}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div>
-                  <p className="text-sm text-gray-600">Activos</p>
-                  <p className="text-2xl font-bold">{stats.active}</p>
+                <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600">Activos</p>
+                  <p className="text-lg sm:text-2xl font-bold truncate">{stats.active}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <Star className="w-5 h-5 text-yellow-600" />
-                <div>
-                  <p className="text-sm text-gray-600">VIP</p>
-                  <p className="text-2xl font-bold">{stats.vip}</p>
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600">VIP</p>
+                  <p className="text-lg sm:text-2xl font-bold truncate">{stats.vip}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
+          <Card className="col-span-2 sm:col-span-1">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                <div>
-                  <p className="text-sm text-gray-600">Identificados</p>
-                  <p className="text-2xl font-bold">{stats.withConfirmedNames}</p>
+                <div className="w-3 h-3 bg-purple-500 rounded-full flex-shrink-0"></div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600">Identificados</p>
+                  <p className="text-lg sm:text-2xl font-bold truncate">{stats.withConfirmedNames}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters */}
+        {/* Filters - Mobile Optimized */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
               <div className="flex items-center space-x-2 flex-1">
-                <Search className="w-4 h-4 text-gray-400" />
+                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <Input
                   placeholder="Buscar por nombre o teléfono..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base"
                 />
               </div>
               
               <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 text-gray-400" />
+                <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Filtrar por estado" />
                   </SelectTrigger>
                   <SelectContent>
@@ -327,79 +335,84 @@ export default function ClientsPage() {
                 {filteredClients.map((client) => (
                   <div
                     key={client.id}
-                    className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors w-full max-w-full overflow-hidden"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold">
+                    <div className="flex items-center justify-between w-full max-w-full overflow-hidden gap-2 sm:gap-4">
+                      <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0 overflow-hidden">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-blue-600 font-semibold text-sm sm:text-base">
                             {client.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <h3 className="font-semibold text-gray-900">{client.name}</h3>
-                            {client.isNameConfirmed && (
-                              <Badge variant="secondary" className="text-xs">Verificado</Badge>
-                            )}
-                            <Badge className={getStatusColor(client.status)}>
-                              {getStatusLabel(client.status)}
-                            </Badge>
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 w-full overflow-hidden">
+                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate flex-1 min-w-0">{client.name}</h3>
+                            <div className="flex items-center space-x-2 flex-shrink-0 flex-wrap">
+                              {client.isNameConfirmed && (
+                                <Badge variant="secondary" className="text-xs whitespace-nowrap">Verificado</Badge>
+                              )}
+                              <Badge className={`${getStatusColor(client.status)} text-xs whitespace-nowrap`}>
+                                {getStatusLabel(client.status)}
+                              </Badge>
+                            </div>
                           </div>
                           
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                            <div className="flex items-center space-x-1">
-                              <Phone className="w-3 h-3" />
-                              <span>{client.phoneNumber}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs sm:text-sm text-gray-600 mt-1 w-full overflow-hidden">
+                            <div className="flex items-center space-x-1 min-w-0 overflow-hidden">
+                              <Phone className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{client.phoneNumber}</span>
                             </div>
-                            <div className="flex items-center space-x-1">
-                              <MessageCircle className="w-3 h-3" />
-                              <span>{client.messageCount} mensajes</span>
+                            <div className="flex items-center space-x-1 flex-shrink-0">
+                              <MessageCircle className="w-3 h-3 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{client.messageCount} mensajes</span>
                             </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>Último: {formatDate(client.lastSeen)}</span>
+                            <div className="flex items-center space-x-1 min-w-0 overflow-hidden">
+                              <Calendar className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">Último: {formatDate(client.lastSeen)}</span>
                             </div>
                           </div>
                           
                           {client.topics.length > 0 && (
-                            <div className="flex items-center space-x-2 mt-2">
-                              <span className="text-xs text-gray-500">Temas:</span>
-                              {client.topics.slice(0, 3).map((topic, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {topic}
-                                </Badge>
-                              ))}
-                              {client.topics.length > 3 && (
-                                <span className="text-xs text-gray-400">
-                                  +{client.topics.length - 3} más
-                                </span>
-                              )}
+                            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 mt-2 w-full overflow-hidden">
+                              <span className="text-xs text-gray-500 flex-shrink-0">Temas:</span>
+                              <div className="flex flex-wrap gap-1 w-full overflow-hidden">
+                                {client.topics.slice(0, 3).map((topic, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs whitespace-nowrap flex-shrink-0">
+                                    {topic}
+                                  </Badge>
+                                ))}
+                                {client.topics.length > 3 && (
+                                  <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+                                    +{client.topics.length - 3} más
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 flex-shrink-0">
                         {client.status !== 'vip' && (
                           <Button
                             size="sm"
                             onClick={() => promoteToVIP(client.id, client.phoneNumber)}
-                            className="flex items-center space-x-1"
+                            className="flex items-center space-x-1 text-xs whitespace-nowrap"
                           >
-                            <Star className="w-3 h-3" />
-                            <span>Promocionar a VIP</span>
+                            <Star className="w-3 h-3 flex-shrink-0" />
+                            <span className="hidden sm:inline">Promocionar a VIP</span>
+                            <span className="sm:hidden">VIP</span>
                           </Button>
                         )}
                         
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" className="whitespace-nowrap">
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
                   </div>
-                ))}
+                ))}}
               </div>
             )}
           </CardContent>
