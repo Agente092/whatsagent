@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Users, Search, Filter, MoreVertical, MessageCircle, Calendar, Phone, Star } from 'lucide-react'
+import Sidebar from '@/components/Sidebar'
+import Header from '@/components/Header'
+import MobileMenuButton from '@/components/MobileMenuButton'
 
 interface Client {
   id: string
@@ -43,6 +46,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false) // 🔧 NUEVO: Estado para menú móvil
 
   // 🗏 SISTEMA DE NOTIFICACIONES SIMPLE
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
@@ -186,9 +190,22 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center h-32 sm:h-64">
+      <div className="flex min-h-screen bg-gray-50">
+        {/* Mobile Menu Button durante la carga */}
+        <MobileMenuButton 
+          isOpen={isMobileMenuOpen} 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        />
+        
+        {/* Sidebar durante la carga */}
+        <Sidebar 
+          isMobileMenuOpen={isMobileMenuOpen} 
+          setIsMobileMenuOpen={setIsMobileMenuOpen} 
+        />
+        
+        <div className="flex-1 flex flex-col overflow-hidden w-full max-w-full min-w-0">
+          <Header />
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
               <span className="text-sm sm:text-base text-gray-600">Cargando clientes...</span>
@@ -200,26 +217,42 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full max-w-full overflow-x-hidden">
-      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 max-w-7xl space-y-4 sm:space-y-6 w-full max-w-full">
-        {/* Header - Responsive */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-            <Button 
-              onClick={() => router.push('/dashboard')} 
-              variant="outline"
-              className="flex items-center space-x-2 mb-2 sm:mb-0"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Volver al Dashboard</span>
-              <span className="sm:hidden">Volver</span>
-            </Button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Gestión de Clientes</h1>
-              <p className="text-sm sm:text-base text-gray-600">Administra y monitorea la base de clientes</p>
+    <div className="flex min-h-screen bg-gray-50 w-full max-w-full overflow-x-hidden">
+      {/* Mobile Menu Button - Always visible on mobile */}
+      <MobileMenuButton 
+        isOpen={isMobileMenuOpen} 
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+      />
+      
+      {/* Unified Sidebar - Responsive */}
+      <Sidebar 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        setIsMobileMenuOpen={setIsMobileMenuOpen} 
+      />
+      
+      <div className="flex-1 flex flex-col overflow-hidden w-full max-w-full min-w-0">
+        <Header />
+        
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 w-full max-w-full">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 w-full max-w-full">
+            {/* Header - Responsive */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                <Button 
+                  onClick={() => router.push('/dashboard')} 
+                  variant="outline"
+                  className="flex items-center space-x-2 mb-2 sm:mb-0"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Volver al Dashboard</span>
+                  <span className="sm:hidden">Volver</span>
+                </Button>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Gestión de Clientes</h1>
+                  <p className="text-sm sm:text-base text-gray-600">Administra y monitorea la base de clientes</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
         {/* Stats Cards - Responsive Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -417,6 +450,8 @@ export default function ClientsPage() {
             )}
           </CardContent>
         </Card>
+          </div>
+        </main>
       </div>
     </div>
   )
