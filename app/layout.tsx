@@ -28,8 +28,8 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={inter.className}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <body className={`${inter.className} prevent-scroll`}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 safe-area-inset">
           {children}
         </div>
       </body>
