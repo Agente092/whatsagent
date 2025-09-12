@@ -86,7 +86,7 @@ export default function Sidebar({ isMobileMenuOpen = false, setIsMobileMenuOpen 
       )}>
         <div className="flex flex-col h-full">
           {/* Logo - Mobile padding adjustment */}
-          <div className="flex items-center justify-center h-16 px-4 sm:px-6 border-b border-gray-200">
+          <div className="flex items-center justify-start h-16 px-4 sm:px-6 border-b border-gray-200">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
                 <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
