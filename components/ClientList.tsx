@@ -127,89 +127,121 @@ export default function ClientList({ clients, onClientUpdated }: ClientListProps
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {clients.map((client) => {
           // 🔧 OBTENER PROPIEDADES CON FALLBACKS DE COMPATIBILIDAD
           const phoneNumber = client.phoneNumber || client.phone || 'No disponible'
           const lastActivity = client.lastSeen || client.lastActivity
           
           return (
-            <Card key={client.id} className="card-hover">
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
-                  {/* Client Info */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
+            <Card key={client.id} className="card-hover w-full max-w-full overflow-hidden">
+              <CardContent className="p-3 sm:p-4 lg:p-6 w-full max-w-full">
+                <div className="flex flex-col space-y-3 sm:space-y-4 w-full max-w-full overflow-hidden">
+                  {/* Header Row - Name and Status */}
+                  <div className="flex items-start justify-between gap-2 w-full max-w-full overflow-hidden">
+                    <div className="flex-1 min-w-0 space-y-1 overflow-hidden">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full overflow-hidden">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate flex-1 min-w-0">{client.name}</h3>
+                        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
                           {getStatusBadge(client)}
                           {client.isNameConfirmed && (
-                            <Badge variant="outline" className="text-xs">Verificado</Badge>
+                            <Badge variant="outline" className="text-xs whitespace-nowrap">Verificado</Badge>
                           )}
                         </div>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <Phone className="w-4 h-4" />
-                            <span>{phoneNumber}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <MessageSquare className="w-4 h-4" />
-                            <span>{client.messageCount} mensajes</span>
-                          </div>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-600 w-full overflow-hidden">
+                        <div className="flex items-center space-x-1 min-w-0 overflow-hidden">
+                          <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                          <span className="truncate flex-1 min-w-0">{phoneNumber}</span>
+                        </div>
+                        <div className="flex items-center space-x-1 flex-shrink-0">
+                          <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{client.messageCount} mensajes</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      {client.firstSeen && (
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <div>
-                            <span className="text-gray-600">Primer contacto:</span>
-                            <div className="font-medium">{formatDate(client.firstSeen)}</div>
-                          </div>
-                        </div>
-                      )}
+                    {/* Mobile Actions Menu */}
+                    <div className="flex items-center space-x-1 sm:hidden flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingClient(client)}
+                        className="h-8 w-8 p-0 flex-shrink-0"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
                       
-                      {lastActivity && (
-                        <div className="flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <div>
-                            <span className="text-gray-600">Última actividad:</span>
-                            <div className="font-medium">{formatDate(lastActivity)}</div>
-                          </div>
-                        </div>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteClient(client.id)}
+                        disabled={deletingClient === client.id}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:border-red-300 flex-shrink-0"
+                      >
+                        {deletingClient === client.id ? (
+                          <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                      </Button>
                     </div>
+                  </div>
+
+                  {/* Details Grid - Responsive */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm w-full max-w-full overflow-hidden">
+                    {client.firstSeen && (
+                      <div className="flex items-start space-x-2 min-w-0 overflow-hidden">
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <span className="text-gray-600 block text-xs">Primer contacto:</span>
+                          <div className="font-medium truncate">{formatDate(client.firstSeen)}</div>
+                        </div>
+                      </div>
+                    )}
                     
-                    {/* Mostrar tópicos si existen */}
-                    {client.topics && client.topics.length > 0 && (
-                      <div className="flex items-center space-x-2 mt-2">
-                        <span className="text-xs text-gray-500">Temas:</span>
+                    {lastActivity && (
+                      <div className="flex items-start space-x-2 min-w-0 overflow-hidden">
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <span className="text-gray-600 block text-xs">Última actividad:</span>
+                          <div className="font-medium truncate">{formatDate(lastActivity)}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Topics - Responsive */}
+                  {client.topics && client.topics.length > 0 && (
+                    <div className="space-y-1 w-full max-w-full overflow-hidden">
+                      <span className="text-xs text-gray-500">Temas:</span>
+                      <div className="flex flex-wrap gap-1 w-full max-w-full overflow-hidden">
                         {client.topics.slice(0, 3).map((topic, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={index} variant="outline" className="text-xs whitespace-nowrap flex-shrink-0">
                             {topic}
                           </Badge>
                         ))}
                         {client.topics.length > 3 && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
                             +{client.topics.length - 3} más
                           </span>
                         )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  {/* Actions */}
-                  <div className="flex items-center space-x-2">
+                  {/* Desktop Actions - Hidden on mobile */}
+                  <div className="hidden sm:flex items-center justify-end space-x-2 pt-2 border-t border-gray-100 w-full max-w-full overflow-hidden">
                     {client.status !== 'vip' && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => promoteToVIP(client.id, client.phoneNumber || client.phone || '')}
+                        className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
                       >
-                        👑 Promocionar a VIP
+                        👑 <span className="hidden sm:inline ml-1">Promocionar a VIP</span>
+                        <span className="sm:hidden ml-1">VIP</span>
                       </Button>
                     )}
                     
@@ -217,8 +249,9 @@ export default function ClientList({ clients, onClientUpdated }: ClientListProps
                       variant="outline"
                       size="sm"
                       onClick={() => setEditingClient(client)}
+                      className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
                     >
-                      <Edit className="w-4 h-4 mr-1" />
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                       Editar
                     </Button>
                     
@@ -227,15 +260,29 @@ export default function ClientList({ clients, onClientUpdated }: ClientListProps
                       size="sm"
                       onClick={() => handleDeleteClient(client.id)}
                       disabled={deletingClient === client.id}
-                      className="text-red-600 hover:text-red-700 hover:border-red-300"
+                      className="text-red-600 hover:text-red-700 hover:border-red-300 text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
                     >
                       {deletingClient === client.id ? (
-                        <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                       )}
                     </Button>
                   </div>
+
+                  {/* Mobile VIP Promotion - Shown only on mobile if not VIP */}
+                  {client.status !== 'vip' && (
+                    <div className="sm:hidden w-full max-w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => promoteToVIP(client.id, client.phoneNumber || client.phone || '')}
+                        className="w-full text-xs whitespace-nowrap"
+                      >
+                        👑 Promocionar a VIP
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
