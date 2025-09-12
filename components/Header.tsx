@@ -74,12 +74,14 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-600">
+    <header className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 w-full max-w-full overflow-hidden">
+      <div className="flex items-center justify-between w-full max-w-full overflow-hidden gap-2 sm:gap-4">
+        <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0 overflow-hidden">
+          {/* Mobile spacing for hamburger button */}
+          <div className="w-14 flex-shrink-0 lg:hidden"></div>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Dashboard</h1>
+            <p className="text-xs sm:text-sm text-gray-600 hidden sm:block truncate">
               {new Date().toLocaleDateString('es-PE', {
                 weekday: 'long',
                 year: 'numeric',
@@ -87,23 +89,35 @@ export default function Header() {
                 day: 'numeric'
               })}
             </p>
+            <p className="text-xs text-gray-600 sm:hidden truncate">
+              {new Date().toLocaleDateString('es-PE', {
+                day: 'numeric',
+                month: 'short'
+              })}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {/* Bot Status */}
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0 overflow-hidden">
+          {/* Bot Status - Responsive */}
+          <div className="flex items-center space-x-1 sm:space-x-2 overflow-hidden">
+            <div className="flex items-center space-x-1 sm:space-x-2 overflow-hidden">
               {botStatus.isConnected ? (
-                <Wifi className="w-4 h-4 text-green-600" />
+                <Wifi className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
               ) : (
-                <WifiOff className="w-4 h-4 text-red-600" />
+                <WifiOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-600 flex-shrink-0" />
               )}
               <Badge 
                 variant={botStatus.isConnected ? 'success' : 'destructive'}
-                className="text-xs"
+                className="text-xs hidden sm:inline-flex whitespace-nowrap"
               >
                 {botStatus.isConnected ? 'Bot Conectado' : 'Bot Desconectado'}
+              </Badge>
+              <Badge 
+                variant={botStatus.isConnected ? 'success' : 'destructive'}
+                className="text-xs sm:hidden whitespace-nowrap"
+              >
+                {botStatus.isConnected ? 'On' : 'Off'}
               </Badge>
             </div>
             
@@ -111,23 +125,25 @@ export default function Header() {
               variant="outline"
               size="sm"
               onClick={handleRefreshBot}
-              className="h-8 px-3 text-xs"
+              className="h-7 sm:h-8 px-2 sm:px-3 text-xs whitespace-nowrap flex-shrink-0"
             >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              {connectionStatus === 'connected' ? 'Conectado' :
-               connectionStatus === 'connecting' ? 'Conectando...' :
-               'Ir a Bot Status'}
+              <RefreshCw className="w-3 h-3 mr-0 sm:mr-1 flex-shrink-0" />
+              <span className="hidden sm:inline">
+                {connectionStatus === 'connected' ? 'Conectado' :
+                 connectionStatus === 'connecting' ? 'Conectando...' :
+                 'Ir a Bot Status'}
+              </span>
             </Button>
           </div>
 
-          {/* Notifications */}
-          <div className="relative">
-            <Button variant="outline" size="icon" className="relative">
-              <Bell className="w-4 h-4" />
+          {/* Notifications - Mobile Optimized */}
+          <div className="relative flex-shrink-0">
+            <Button variant="outline" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+              <Bell className="w-3 h-3 sm:w-4 sm:h-4" />
               {notifications > 0 && (
                 <Badge 
                   variant="destructive" 
-                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
+                  className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-xs p-0"
                 >
                   {notifications > 99 ? '99+' : notifications}
                 </Badge>
@@ -135,8 +151,8 @@ export default function Header() {
             </Button>
           </div>
 
-          {/* Quick Stats */}
-          <div className="hidden md:flex items-center space-x-4 text-sm text-gray-600">
+          {/* Quick Stats - Hidden on small screens */}
+          <div className="hidden lg:flex items-center space-x-4 text-sm text-gray-600">
             <div className="text-center">
               <div className="font-semibold text-gray-900">
                 {new Date().toLocaleTimeString('es-PE', {
@@ -150,23 +166,25 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Bot disconnected warning */}
+      {/* Bot disconnected warning - Responsive */}
       {!botStatus.isConnected && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <WifiOff className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm text-yellow-800">
-                El bot de WhatsApp está desconectado. Los clientes no pueden enviar mensajes.
+        <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-yellow-50 border border-yellow-200 rounded-lg w-full max-w-full overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 w-full max-w-full overflow-hidden gap-2">
+            <div className="flex items-center space-x-2 flex-1 min-w-0 overflow-hidden">
+              <WifiOff className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-yellow-800 truncate">
+                <span className="hidden sm:inline">El bot de WhatsApp está desconectado. Los clientes no pueden enviar mensajes.</span>
+                <span className="sm:hidden">Bot desconectado</span>
               </span>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefreshBot}
-              className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+              className="text-yellow-700 border-yellow-300 hover:bg-yellow-100 w-full sm:w-auto text-xs sm:text-sm flex-shrink-0 whitespace-nowrap"
             >
-              Reconectar
+              <span className="hidden sm:inline">Reconectar</span>
+              <span className="sm:hidden">Reconectar</span>
             </Button>
           </div>
         </div>
