@@ -10,6 +10,7 @@ import ClientDialog from '@/components/ClientDialog'
 import ClientList from '@/components/ClientList'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import MobileMenuButton from '@/components/MobileMenuButton'
 
 interface DashboardStats {
   totalClients: number
@@ -53,6 +54,7 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expired' | 'expiring'>('all')
   const [isLoading, setIsLoading] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     // 🛡️ TEMPORAL: Deshabilitar verificación de autenticación para debugging
@@ -147,14 +149,19 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="loading-dots">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
+      <div className="flex min-h-screen">
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="loading-dots mb-3">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+            <p className="text-sm sm:text-base text-gray-600">Cargando dashboard...</p>
           </div>
         </div>
       </div>
@@ -162,22 +169,37 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+    <div className="flex min-h-screen bg-gray-50 w-full max-w-full overflow-x-hidden">
+      {/* Mobile Menu Button - Always visible on mobile */}
+      <MobileMenuButton 
+        isOpen={isMobileMenuOpen} 
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+      />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Sidebar - Hidden on mobile, shown on lg+ */}
+      <div className="hidden lg:block flex-shrink-0">
+        <Sidebar />
+      </div>
+      
+      {/* Mobile Sidebar - Shown when menu is open */}
+      <Sidebar 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        setIsMobileMenuOpen={setIsMobileMenuOpen} 
+      />
+      
+      <div className="flex-1 flex flex-col overflow-hidden w-full max-w-full min-w-0">
         <Header />
         
-        <main className="flex-1 overflow-y-auto p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 w-full max-w-full">
+          {/* Stats Cards - Responsive Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 lg:mb-8">
             <Card className="card-hover">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalClients}</div>
+                <div className="text-xl sm:text-2xl font-bold">{stats.totalClients}</div>
                 <p className="text-xs text-muted-foreground">
                   {stats.activeClients} activos
                 </p>
@@ -187,10 +209,10 @@ export default function DashboardPage() {
             <Card className="card-hover">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Mensajes Hoy</CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.todayMessages}</div>
+                <div className="text-xl sm:text-2xl font-bold">{stats.todayMessages}</div>
                 <p className="text-xs text-muted-foreground">
                   {stats.totalMessages} total
                 </p>
@@ -200,10 +222,10 @@ export default function DashboardPage() {
             <Card className="card-hover">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Expiran Hoy</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.expiringToday}</div>
+                <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.expiringToday}</div>
                 <p className="text-xs text-muted-foreground">
                   Requieren renovación
                 </p>
@@ -213,10 +235,10 @@ export default function DashboardPage() {
             <Card className="card-hover">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Tasa Actividad</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
                   {stats.totalClients > 0 ? Math.round((stats.activeClients / stats.totalClients) * 100) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -226,41 +248,46 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Client Management Section */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <CardTitle>Gestión de Clientes</CardTitle>
-                  <CardDescription>
+          {/* Client Management Section - Fully Responsive */}
+          <Card className="shadow-lg w-full max-w-full overflow-hidden">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0 w-full max-w-full overflow-hidden">
+                <div className="space-y-1 flex-1 min-w-0 overflow-hidden">
+                  <CardTitle className="text-lg sm:text-xl truncate">Gestión de Clientes</CardTitle>
+                  <CardDescription className="text-sm sm:text-base">
                     Administra las suscripciones y accesos de tus clientes
                   </CardDescription>
                 </div>
-                <Button onClick={() => setIsClientDialogOpen(true)} className="w-full sm:w-auto">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Cliente
+                <Button 
+                  onClick={() => setIsClientDialogOpen(true)} 
+                  className="w-full sm:w-auto text-sm sm:text-base flex-shrink-0 whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="hidden sm:inline">Agregar Cliente</span>
+                  <span className="sm:hidden">Agregar</span>
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Buscar por nombre o teléfono..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+            <CardContent className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
+              {/* Filters - Mobile Optimized */}
+              <div className="space-y-3 sm:space-y-4 w-full max-w-full overflow-hidden">
+                <div className="relative w-full max-w-full">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 flex-shrink-0" />
+                  <Input
+                    placeholder="Buscar por nombre o teléfono..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 text-sm sm:text-base w-full"
+                  />
                 </div>
-                <div className="flex gap-2">
+                
+                {/* Filter Buttons - Responsive Layout */}
+                <div className="flex flex-wrap gap-2 sm:gap-3 w-full max-w-full overflow-hidden">
                   <Button
                     variant={filterStatus === 'all' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setFilterStatus('all')}
+                    className="text-xs sm:text-sm flex-1 sm:flex-none min-w-0 whitespace-nowrap"
                   >
                     Todos
                   </Button>
@@ -268,6 +295,7 @@ export default function DashboardPage() {
                     variant={filterStatus === 'active' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setFilterStatus('active')}
+                    className="text-xs sm:text-sm flex-1 sm:flex-none min-w-0 whitespace-nowrap"
                   >
                     Activos
                   </Button>
@@ -275,23 +303,29 @@ export default function DashboardPage() {
                     variant={filterStatus === 'expiring' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setFilterStatus('expiring')}
+                    className="text-xs sm:text-sm flex-1 sm:flex-none min-w-0 whitespace-nowrap"
                   >
-                    Por Vencer
+                    <span className="hidden sm:inline">Por Vencer</span>
+                    <span className="sm:hidden">Vencer</span>
                   </Button>
                   <Button
                     variant={filterStatus === 'expired' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setFilterStatus('expired')}
+                    className="text-xs sm:text-sm flex-1 sm:flex-none min-w-0 whitespace-nowrap"
                   >
-                    Expirados
+                    <span className="hidden sm:inline">Expirados</span>
+                    <span className="sm:hidden">Exp.</span>
                   </Button>
                 </div>
               </div>
 
-              <ClientList 
-                clients={filteredClients} 
-                onClientUpdated={fetchDashboardData}
-              />
+              <div className="w-full max-w-full overflow-hidden">
+                <ClientList 
+                  clients={filteredClients} 
+                  onClientUpdated={fetchDashboardData}
+                />
+              </div>
             </CardContent>
           </Card>
         </main>
