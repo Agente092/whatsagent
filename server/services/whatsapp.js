@@ -229,8 +229,18 @@ class WhatsAppService extends EventEmitter {
           this.reconnectAttempts = 0 // Reset contador en conexión exitosa
           this.qr = null
           this.qrCode = null
+          
+          // 🔄 EMISIONES MÚLTIPLES PARA SINCRONIZACIÓN
           this.emit('whatsapp-ready')
           this.emit('whatsapp-status', 'connected')
+          this.emit('connected') // 🎆 EVENTO PRINCIPAL
+          
+          // 🔄 DELAY PARA ASEGURAR SINCRONIZACIÓN
+          setTimeout(() => {
+            this.emit('whatsapp-status', 'connected')
+            this.emit('connected')
+            console.log('✅ Estados de conexión re-emitidos para sincronización')
+          }, 500)
         }
       })
 
