@@ -8,6 +8,7 @@ const { createServer } = require('http')
 const { Server } = require('socket.io')
 const morgan = require('morgan')
 const { v4: uuidv4 } = require('uuid')
+const fetch = require('node-fetch')
 
 // Import services
 const WhatsAppService = require('./services/whatsapp')
@@ -804,6 +805,38 @@ app.get('/health', async (req, res) => {
   } catch (error) {
     logger.error('Health check failed', error, { requestId: req.id })
     res.status(503).json({ status: 'error', timestamp: new Date().toISOString() })
+  }
+})
+
+// 🔄 ENDPOINT ESPECÍFICO PARA KEEP-ALIVE (optimizado para ping interno)
+app.get('/keep-alive', (req, res) => {
+  try {
+    const userAgent = req.get('User-Agent') || 'unknown'
+    const isKeepAliveRequest = userAgent.includes('KeepAlive')
+    
+    if (isKeepAliveRequest) {
+      // Log mínimo para keep-alive interno
+      console.log('🔄 Keep-alive ping recibido')
+    }
+    
+    res.json({
+      status: 'alive',
+      timestamp: new Date().toISOString(),
+      uptime: Math.round(process.uptime()),
+      pid: process.pid,
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+      },
+      environment: process.env.NODE_ENV || 'development'
+    })
+  } catch (error) {
+    logger.error('Keep-alive endpoint failed', error, { requestId: req.id })
+    res.status(500).json({ 
+      status: 'error', 
+      timestamp: new Date().toISOString(),
+      error: 'Internal server error'
+    })
   }
 })
 
@@ -2225,5 +2258,122 @@ server.listen(PORT, '0.0.0.0', () => {
       database: 'SQLite',
       features: ['Socket.IO', 'WhatsApp Bot', 'Gemini AI', 'Enhanced Monitoring']
     })
+    
+    // 🔄 KEEP-ALIVE SYSTEM: Evitar que Render suspenda el servicio
+    startKeepAliveSystem()
   }
 })
+
+// 🔄 SISTEMA KEEP-ALIVE PARA RENDER
+function startKeepAliveSystem() {
+  // Determinar la URL del servicio basándose en las variables de entorno
+  const serviceUrl = process.env.RENDER_EXTERNAL_URL || 
+                    process.env.NEXTAUTH_URL || 
+                    'https://fitpro-s1ct.onrender.com' // Basándome en tu configuración de render.yaml
+  
+  console.log('🔄 =========================================')
+  console.log('🔄     SISTEMA KEEP-ALIVE INICIADO      ')
+  console.log('🔄 =========================================')
+  console.log(`🌐 URL del servicio: ${serviceUrl}`)
+  console.log(`⏰ Intervalo: 14 minutos`)
+  console.log(`🎯 Objetivo: Evitar suspensión por inactividad`)
+  console.log('🔄 =========================================')
+  
+  logger.info('Keep-alive system started', {
+    service: 'keep-alive',
+    targetUrl: serviceUrl,
+    intervalMinutes: 14,
+    purpose: 'prevent_render_sleep'
+  })
+
+  // Función para hacer ping al servicio
+  const keepAlive = () => {
+    setInterval(async () => {
+      try {
+        console.log('🔄 Ejecutando keep-alive ping...')
+        
+        const startTime = Date.now()
+        const response = await fetch(`${serviceUrl}/keep-alive`, {
+          method: 'GET',
+          timeout: 10000, // 10 segundos timeout
+          headers: {
+            'User-Agent': 'Internal-KeepAlive-System/1.0',
+            'Accept': 'application/json'
+          }
+        })
+        
+        const duration = Date.now() - startTime
+        
+        if (response.ok) {
+          console.log(`✅ Keep-alive exitoso - Status: ${response.status} - Tiempo: ${duration}ms`)
+          logger.info('Keep-alive ping successful', {
+            service: 'keep-alive',
+            status: response.status,
+            responseTime: duration,
+            timestamp: new Date().toISOString()
+          })
+        } else {
+          console.warn(`⚠️ Keep-alive respuesta no OK - Status: ${response.status}`)
+          logger.warn('Keep-alive ping returned non-OK status', {
+            service: 'keep-alive',
+            status: response.status,
+            responseTime: duration
+          })
+        }
+      } catch (error) {
+        console.error('❌ Error en keep-alive ping:', error.message)
+        logger.error('Keep-alive ping failed', {
+          service: 'keep-alive',
+          error: error.message,
+          timestamp: new Date().toISOString()
+        })
+        
+        // Si falla el ping al endpoint /health, intentar con la raíz
+        try {
+          const fallbackResponse = await fetch(serviceUrl, {
+            method: 'GET',
+            timeout: 10000,
+            headers: {
+              'User-Agent': 'Internal-KeepAlive-Fallback/1.0'
+            }
+          })
+          console.log(`🔄 Fallback ping exitoso - Status: ${fallbackResponse.status}`)
+        } catch (fallbackError) {
+          console.error('❌ Fallback ping también falló:', fallbackError.message)
+        }
+      }
+    }, 14 * 60 * 1000) // 14 minutos en milisegundos
+  }
+
+  // Iniciar el sistema después de 30 segundos para dar tiempo al servidor
+  setTimeout(() => {
+    keepAlive()
+    console.log('🔄 Keep-alive system activo - próximo ping en 14 minutos')
+  }, 30000)
+
+  // También hacer un ping inicial después de 2 minutos para verificar que funciona
+  setTimeout(async () => {
+    try {
+      console.log('🔄 Ejecutando ping inicial de verificación...')
+      const response = await fetch(`${serviceUrl}/keep-alive`, {
+        method: 'GET',
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Initial-KeepAlive-Test/1.0'
+        }
+      })
+      console.log(`✅ Ping inicial exitoso - Status: ${response.status}`)
+      logger.info('Initial keep-alive test successful', {
+        service: 'keep-alive',
+        status: response.status,
+        test: 'initial_verification'
+      })
+    } catch (error) {
+      console.error('❌ Ping inicial falló:', error.message)
+      logger.error('Initial keep-alive test failed', {
+        service: 'keep-alive',
+        error: error.message
+      })
+    }
+  }, 2 * 60 * 1000) // 2 minutos
+}
