@@ -1,4 +1,12 @@
-# 🔄 Sistema Keep-Alive para Render
+# 🔄 Sistema Keep-Alive para Render - VERSIÓN CORREGIDA
+
+## ✅ **PROBLEMA RESUELTO: `fetch is not a function`**
+
+**❌ Problema Original**: El error `fetch is not a function` ocurría porque `node-fetch` no estaba disponible en el entorno de producción de Render.
+
+**✅ Solución Implementada**: Reemplazamos `node-fetch` con una implementación HTTP nativa usando los módulos `http` y `https` de Node.js, que están siempre disponibles.
+
+---
 
 ## ¿Qué es el Sistema Keep-Alive?
 
@@ -9,17 +17,27 @@ El sistema keep-alive implementado evita que Render suspenda automáticamente el
 ### 1. **Auto-Ping Programado**
 - **Intervalo**: Cada 14 minutos (menor que el límite de 15 minutos de Render)
 - **Endpoint**: `/keep-alive` (optimizado específicamente para esta función)
-- **Método**: Petición GET interna
+- **Método**: Petición GET interna usando HTTP nativo
 - **Timeout**: 10 segundos máximo
 
-### 2. **Funcionalidades Implementadas**
+### 2. **🔧 Nueva Implementación HTTP Nativa**
 
-#### ✅ **Ping Regular**
+#### ✅ **Sin Dependencias Externas**
 ```javascript
-// Se ejecuta cada 14 minutos
-setInterval(() => {
-  fetch(`${serviceUrl}/keep-alive`)
-}, 14 * 60 * 1000)
+// Usa módulos nativos de Node.js
+const http = require('http')
+const https = require('https')
+const { URL } = require('url')
+
+// Función HTTP nativa personalizada
+const makeRequest = (url, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url)
+    const isHttps = parsedUrl.protocol === 'https:'
+    const client = isHttps ? https : http
+    // ... implementación completa
+  })
+}
 ```
 
 #### ✅ **Endpoint Optimizado**
