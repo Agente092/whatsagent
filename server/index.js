@@ -303,7 +303,22 @@ whatsappService.on('qr-code', (qrCode) => {
 whatsappService.on('connected', () => {
   logger.whatsapp('info', 'WhatsApp service connected successfully')
   console.log('✅ Broadcasting connected status to all clients')
+  
+  // 🔄 BROADCAST MÚLTIPLE PARA ASEGURAR RECEPCIÓN
   io.emit('whatsapp-status', 'connected')
+  
+  // 🔄 DELAY ADICIONAL PARA SINCRONIZACIÓN
+  setTimeout(() => {
+    io.emit('whatsapp-status', 'connected')
+    console.log('✅ Estado conectado re-enviado para sincronización')
+  }, 1000)
+  
+  // 🔄 LIMPIAR QR CODE CUANDO SE CONECTA
+  setTimeout(() => {
+    io.emit('qr-code', null) // Limpiar QR
+    io.emit('whatsapp-status', 'connected')
+    console.log('✅ QR limpiado y estado final confirmado')
+  }, 2000)
 })
 
 whatsappService.on('disconnected', () => {
@@ -969,6 +984,61 @@ app.get('/api/dashboard/stats-debug', async (req, res) => {
   } catch (error) {
     console.error('Stats error:', error)
     res.status(500).json({ message: 'Error al obtener estadísticas' })
+  }
+})
+
+// 🚫 ENDPOINT ESPECIAL: Eliminar clientes auto-creados (TEMPORAL)
+app.delete('/api/cleanup/auto-clients', async (req, res) => {
+  try {
+    console.log('🧹 Limpiando clientes creados automáticamente...')
+    
+    // Buscar clientes con nombres como "Cliente-XXXX" que fueron auto-creados
+    const autoClients = await prisma.client.findMany({
+      where: {
+        name: {
+          startsWith: 'Cliente-'
+        },
+        isNameConfirmed: false
+      }
+    })
+    
+    console.log(`🔍 Encontrados ${autoClients.length} clientes auto-creados para eliminar`)
+    
+    const deleteResults = []
+    for (const client of autoClients) {
+      try {
+        await prisma.client.delete({
+          where: { id: client.id }
+        })
+        deleteResults.push({
+          phoneNumber: client.phoneNumber,
+          name: client.name,
+          status: 'deleted'
+        })
+        console.log(`✅ Cliente eliminado: ${client.name} (${client.phoneNumber})`)
+      } catch (deleteError) {
+        deleteResults.push({
+          phoneNumber: client.phoneNumber,
+          name: client.name,
+          status: 'error',
+          error: deleteError.message
+        })
+        console.error(`❌ Error eliminando ${client.name}:`, deleteError.message)
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Limpieza completada: ${deleteResults.filter(r => r.status === 'deleted').length} eliminados`,
+      results: deleteResults
+    })
+    
+  } catch (error) {
+    console.error('Error en limpieza de clientes:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error en limpieza: ' + error.message
+    })
   }
 })
 
@@ -1698,12 +1768,35 @@ whatsappService.on('message', async (message) => {
           }
         }
 
-        // 👥 PASO 1: GESTIONAR CLIENTE CON CLIENTSERVICE UNIFICADO
-        console.log(`👥 Gestionando cliente: ${from}`)
-        const client = await clientService.getOrCreateClient(from, body)
-        console.log(`✅ Cliente gestionado: ${client.name} (${client.status})`)
+        // 👥 PASO 1: VERIFICAR SI EL CLIENTE EXISTE (SIN CREAR AUTOMÁTICAMENTE)
+        console.log(`👥 Verificando cliente existente: ${from}`)
+        const existingClient = await clientService.findClientByPhone(from)
         
-        // 📝 NO HAY RESTRICCIONES DE ACCESO - TODOS LOS CLIENTES PUEDEN USAR EL SISTEMA
+        if (!existingClient) {
+          // ❌ CLIENTE NO EXISTE - ENVIAR MENSAJE DE ACCESO DENEGADO
+          console.log(`❌ Cliente no registrado: ${from}`)
+          const accessDeniedMessage = `¡Hola! 👋 
+
+Para acceder a nuestro servicio de asesoría empresarial, necesitas ser registrado por un administrador.
+
+📞 Contacta a tu asesor para obtener acceso al sistema.
+
+¡Gracias por tu interés! 🙏`
+          
+          await whatsappService.sendMessage(from, accessDeniedMessage)
+          
+          logger.whatsapp('warn', 'Acceso denegado - Cliente no registrado', from, {
+            message: body?.substring(0, 100),
+            action: 'access_denied'
+          })
+          
+          resolve()
+          return // 🚫 SALIR SIN PROCESAR MÁS
+        }
+        
+        // ✅ CLIENTE EXISTE - ACTUALIZAR ÚLTIMA ACTIVIDAD
+        const client = await clientService.updateClientActivity(existingClient.phoneNumber)
+        console.log(`✅ Cliente autorizado: ${client.name} (${client.status})`)
 
         // 🧠 PASO 1: APLICAR RAZONAMIENTO HUMANO INTELIGENTE
         logger.info('🧠 Aplicando razonamiento humano para análisis contextual...')
