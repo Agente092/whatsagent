@@ -316,6 +316,29 @@ class ClientService {
   }
 
   /**
+   * 🔄 Actualizar actividad del cliente (SIN crear nuevo)
+   */
+  async updateClientActivity(phoneNumber) {
+    try {
+      const clientId = phoneNumber.replace(/\D/g, '')
+      
+      const client = await this.prisma.client.update({
+        where: { phoneNumber: clientId },
+        data: {
+          lastSeen: new Date(),
+          messageCount: { increment: 1 }
+        }
+      })
+      
+      console.log(`🔄 Actividad actualizada: ${client.name} (${phoneNumber})`)
+      return this.formatClientResponse(client)
+    } catch (error) {
+      console.error('Error updating client activity:', error)
+      throw error
+    }
+  }
+
+  /**
    * 🗑️ Eliminar cliente
    */
   async deleteClient(phoneNumber) {
