@@ -8,7 +8,9 @@ const { createServer } = require('http')
 const { Server } = require('socket.io')
 const morgan = require('morgan')
 const { v4: uuidv4 } = require('uuid')
-const fetch = require('node-fetch')
+const http = require('http')
+const https = require('https')
+const { URL } = require('url')
 
 // Import services
 const WhatsAppService = require('./services/whatsapp')
@@ -2286,6 +2288,58 @@ function startKeepAliveSystem() {
     purpose: 'prevent_render_sleep'
   })
 
+  // 🔧 Función HTTP nativa para hacer peticiones (sin dependencias externas)
+  const makeRequest = (url, options = {}) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const parsedUrl = new URL(url)
+        const isHttps = parsedUrl.protocol === 'https:'
+        const client = isHttps ? https : http
+        
+        const requestOptions = {
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port || (isHttps ? 443 : 80),
+          path: parsedUrl.pathname + parsedUrl.search,
+          method: options.method || 'GET',
+          headers: {
+            'User-Agent': options.userAgent || 'Internal-KeepAlive-System/1.0',
+            'Accept': 'application/json',
+            ...options.headers
+          },
+          timeout: options.timeout || 10000
+        }
+        
+        const req = client.request(requestOptions, (res) => {
+          let data = ''
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          res.on('end', () => {
+            resolve({
+              ok: res.statusCode >= 200 && res.statusCode < 300,
+              status: res.statusCode,
+              statusText: res.statusMessage,
+              data: data
+            })
+          })
+        })
+        
+        req.on('error', (error) => {
+          reject(error)
+        })
+        
+        req.on('timeout', () => {
+          req.destroy()
+          reject(new Error('Request timeout'))
+        })
+        
+        req.end()
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
   // Función para hacer ping al servicio
   const keepAlive = () => {
     setInterval(async () => {
@@ -2293,13 +2347,10 @@ function startKeepAliveSystem() {
         console.log('🔄 Ejecutando keep-alive ping...')
         
         const startTime = Date.now()
-        const response = await fetch(`${serviceUrl}/keep-alive`, {
+        const response = await makeRequest(`${serviceUrl}/keep-alive`, {
           method: 'GET',
-          timeout: 10000, // 10 segundos timeout
-          headers: {
-            'User-Agent': 'Internal-KeepAlive-System/1.0',
-            'Accept': 'application/json'
-          }
+          timeout: 10000,
+          userAgent: 'Internal-KeepAlive-System/1.0'
         })
         
         const duration = Date.now() - startTime
@@ -2328,14 +2379,12 @@ function startKeepAliveSystem() {
           timestamp: new Date().toISOString()
         })
         
-        // Si falla el ping al endpoint /health, intentar con la raíz
+        // Si falla el ping al endpoint /keep-alive, intentar con la raíz
         try {
-          const fallbackResponse = await fetch(serviceUrl, {
+          const fallbackResponse = await makeRequest(serviceUrl, {
             method: 'GET',
             timeout: 10000,
-            headers: {
-              'User-Agent': 'Internal-KeepAlive-Fallback/1.0'
-            }
+            userAgent: 'Internal-KeepAlive-Fallback/1.0'
           })
           console.log(`🔄 Fallback ping exitoso - Status: ${fallbackResponse.status}`)
         } catch (fallbackError) {
@@ -2355,12 +2404,10 @@ function startKeepAliveSystem() {
   setTimeout(async () => {
     try {
       console.log('🔄 Ejecutando ping inicial de verificación...')
-      const response = await fetch(`${serviceUrl}/keep-alive`, {
+      const response = await makeRequest(`${serviceUrl}/keep-alive`, {
         method: 'GET',
         timeout: 10000,
-        headers: {
-          'User-Agent': 'Initial-KeepAlive-Test/1.0'
-        }
+        userAgent: 'Initial-KeepAlive-Test/1.0'
       })
       console.log(`✅ Ping inicial exitoso - Status: ${response.status}`)
       logger.info('Initial keep-alive test successful', {
