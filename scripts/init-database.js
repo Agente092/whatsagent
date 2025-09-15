@@ -12,18 +12,20 @@ async function initializeDatabase() {
   const prisma = new PrismaClient()
 
   try {
-    console.log('🚀 Inicializando base de datos...')
-    console.log('📍 DATABASE_URL:', process.env.DATABASE_URL)
+    console.log('🚀 Inicializando base de datos PostgreSQL...')
+    console.log('📍 DATABASE_URL:', process.env.DATABASE_URL ? 'CONFIGURADO' : 'NO CONFIGURADO')
 
     // Verificar conexión
     await prisma.$connect()
-    console.log('✅ Conexión a base de datos establecida')
+    console.log('✅ Conexión a base de datos PostgreSQL establecida')
 
-    // Verificar si las tablas existen
+    // Verificar si las tablas existen y crear datos iniciales
     console.log('🔍 Verificando estructura de base de datos...')
     try {
       const userCount = await prisma.user.count()
+      const clientCount = await prisma.client.count()
       console.log(`ℹ️ Usuarios existentes: ${userCount}`)
+      console.log(`ℹ️ Clientes existentes: ${clientCount}`)
     } catch (error) {
       if (error.code === 'P2021') {
         console.log('⚠️ Tablas no encontradas. Ejecutando db push...')
@@ -58,7 +60,33 @@ async function initializeDatabase() {
       console.log('ℹ️ Usuario administrador ya existe')
     }
 
-    console.log('🎉 Base de datos inicializada correctamente')
+    // 👥 CREAR CLIENTE DE PRUEBA "LUIS" SI NO EXISTE
+    console.log('🔍 Verificando cliente de prueba Luis...')
+    const luisPhone = '51998148917'
+    const existingLuis = await prisma.client.findUnique({
+      where: { phoneNumber: luisPhone }
+    })
+    
+    if (!existingLuis) {
+      await prisma.client.create({
+        data: {
+          phoneNumber: luisPhone,
+          name: 'Luis',
+          isNameConfirmed: true,
+          firstSeen: new Date(),
+          lastSeen: new Date(),
+          messageCount: 4,
+          status: 'active',
+          topics: '["WhatsApp", "Asesoría"]',
+          preferences: '{}'
+        }
+      })
+      console.log('✅ Cliente de prueba Luis creado')
+    } else {
+      console.log('ℹ️ Cliente Luis ya existe')
+    }
+
+    console.log('🎉 Base de datos PostgreSQL inicializada correctamente')
 
   } catch (error) {
     console.error('❌ Error inicializando base de datos:', error)
