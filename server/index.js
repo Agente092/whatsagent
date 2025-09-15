@@ -1675,6 +1675,46 @@ app.delete('/api/clients/:id', async (req, res) => {
   }
 })
 
+// 🧼 NUEVA RUTA: Limpiar todos los datos de la base de datos (SOLO ADMIN)
+app.delete('/api/admin/cleanup-all', authenticateToken, async (req, res) => {
+  try {
+    console.log('🚨 Solicitud de limpieza completa de base de datos')
+    
+    // Contar registros antes de eliminar
+    const clientCount = await prisma.client.count()
+    const userCount = await prisma.user.count()
+    const conversationCount = await prisma.conversation.count()
+    const settingsCount = await prisma.systemSettings.count()
+    
+    console.log(`📊 Registros a eliminar - Clientes: ${clientCount}, Usuarios: ${userCount}, Conversaciones: ${conversationCount}, Configuraciones: ${settingsCount}`)
+    
+    // Eliminar todos los registros de cada tabla
+    await prisma.conversation.deleteMany({})
+    await prisma.client.deleteMany({})
+    await prisma.systemSettings.deleteMany({})
+    // NOTA: No eliminamos usuarios para mantener el acceso administrativo
+    
+    console.log('✅ Limpieza completa realizada')
+    
+    res.json({
+      success: true,
+      message: 'Todos los datos han sido eliminados exitosamente (excepto usuarios administradores)',
+      stats: {
+        clientsDeleted: clientCount,
+        conversationsDeleted: conversationCount,
+        settingsDeleted: settingsCount,
+        usersPreserved: userCount
+      }
+    })
+  } catch (error) {
+    console.error('❌ Error en limpieza completa:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error al limpiar la base de datos: ' + error.message
+    })
+  }
+})
+
 // 🆕 NUEVA RUTA: Toggle status de cliente (UNIFICADO CON PRISMA)
 app.patch('/api/clients/:id/toggle', async (req, res) => {
   try {
