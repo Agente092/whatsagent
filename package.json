@@ -27,6 +27,8 @@
     "db:generate": "npx prisma generate",
     "db:deploy": "npx prisma db push",
     "db:init": "node scripts/init-database.js",
+    "test:migration": "node test-postgresql-migration.js",
+    "db:migrate": "npx prisma db push && npm run db:init",
     "whatsapp:clear": "node emergency-clear-whatsapp.js",
     "postinstall": "npx prisma generate"
   },
