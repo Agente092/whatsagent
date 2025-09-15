@@ -8,7 +8,8 @@ import {
   Users, 
   Settings, 
   LogOut, 
-  Shield
+  Shield,
+  DollarSign
 } from 'lucide-react'
 
 const navigation = [
@@ -23,6 +24,12 @@ const navigation = [
     href: '/dashboard/clients',
     icon: Users,
     description: 'Gestión de suscriptores'
+  },
+  {
+    name: 'Consumo API',
+    href: '/dashboard/api-usage',
+    icon: DollarSign,
+    description: 'Costos de API por usuario'
   },
   {
     name: 'Bot Status',
