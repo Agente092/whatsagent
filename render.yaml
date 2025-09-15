@@ -54,7 +54,7 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: DATABASE_URL
-        value: "file:./database.db"  # SQLite por defecto
+        value: "postgresql://" # Se configurará automáticamente por PostgreSQL
 
   # Frontend Service (Web Service - CORREGIDO)
   - type: web
