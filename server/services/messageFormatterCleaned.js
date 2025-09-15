@@ -94,17 +94,32 @@ class MessageFormatterCleaned {
     formatted = formatted.replace(/\(S\.A\.\)\*?C/g, '(S.A.C.)') // Arreglar formato incorrecto (S.A.)C
     
     // Formateo correcto según la legislación peruana - ORDEN CRÍTICO: S.A.C. ANTES que S.A.
-    formatted = formatted.replace(/\b(S\.A\.C\.|SAC|Sociedad Anónima Cerrada)\b/gi, 'Sociedad Anónima Cerrada (S.A.C.)')
-    formatted = formatted.replace(/\b(S\.A\.A\.|SAA|Sociedad Anónima Abierta)\b/gi, 'Sociedad Anónima Abierta (S.A.A.)')
-    formatted = formatted.replace(/\b(S\.R\.L\.|SRL|Sociedad Comercial de Responsabilidad Limitada)\b/gi, 'Sociedad Comercial de Responsabilidad Limitada (S.R.L.)')
-    formatted = formatted.replace(/\b(E\.I\.R\.L\.|EIRL|Empresa Individual de Responsabilidad Limitada)\b/gi, 'Empresa Individual de Responsabilidad Limitada (E.I.R.L.)')
-    // IMPORTANTE: S.A. al final para no interferir con S.A.C. y S.A.A.
-    formatted = formatted.replace(/\b(S\.A\.|SA)\b(?!\s*[AC]|\s*\(|\s*Cerrada|\s*Abierta)/gi, 'Sociedad Anónima (S.A.)')
+    // 🚨 CORRECCIÓN CRÍTICA: Evitar duplicaciones usando negative lookaheads
+    formatted = formatted.replace(/\b(S\.A\.C\.|SAC)\b(?!.*\(S\.A\.C\.\))/gi, 'Sociedad Anónima Cerrada (S.A.C.)')
+    formatted = formatted.replace(/\bSociedad Anónima Cerrada\b(?!.*\(S\.A\.C\.\))/gi, 'Sociedad Anónima Cerrada (S.A.C.)')
     
-    // Tipos adicionales de empresas en Perú
-    formatted = formatted.replace(/\b(S\. en C\.S\.|Sociedad en Comandita Simple)\b/gi, 'Sociedad en Comandita Simple (S. en C.S.)')
-    formatted = formatted.replace(/\b(S\. en C\.P\.A\.|Sociedad en Comandita por Acciones)\b/gi, 'Sociedad en Comandita por Acciones (S. en C.P.A.)')
-    formatted = formatted.replace(/\b(S\.C\.|Sociedad Colectiva)\b/gi, 'Sociedad Colectiva (S.C.)')
+    formatted = formatted.replace(/\b(S\.A\.A\.|SAA)\b(?!.*\(S\.A\.A\.\))/gi, 'Sociedad Anónima Abierta (S.A.A.)')
+    formatted = formatted.replace(/\bSociedad Anónima Abierta\b(?!.*\(S\.A\.A\.\))/gi, 'Sociedad Anónima Abierta (S.A.A.)')
+    
+    formatted = formatted.replace(/\b(S\.R\.L\.|SRL)\b(?!.*\(S\.R\.L\.\))/gi, 'Sociedad Comercial de Responsabilidad Limitada (S.R.L.)')
+    formatted = formatted.replace(/\bSociedad Comercial de Responsabilidad Limitada\b(?!.*\(S\.R\.L\.\))/gi, 'Sociedad Comercial de Responsabilidad Limitada (S.R.L.)')
+    
+    formatted = formatted.replace(/\b(E\.I\.R\.L\.|EIRL)\b(?!.*\(E\.I\.R\.L\.\))/gi, 'Empresa Individual de Responsabilidad Limitada (E.I.R.L.)')
+    formatted = formatted.replace(/\bEmpresa Individual de Responsabilidad Limitada\b(?!.*\(E\.I\.R\.L\.\))/gi, 'Empresa Individual de Responsabilidad Limitada (E.I.R.L.)')
+    
+    // IMPORTANTE: S.A. al final para no interferir con S.A.C. y S.A.A.
+    formatted = formatted.replace(/\b(S\.A\.|SA)\b(?!\s*[AC]|\s*\(|\s*Cerrada|\s*Abierta|.*\(S\.A\.\))/gi, 'Sociedad Anónima (S.A.)')
+    formatted = formatted.replace(/\bSociedad Anónima\b(?!\s*Cerrada|\s*Abierta|.*\(S\.A\.\))/gi, 'Sociedad Anónima (S.A.)')
+    
+    // Tipos adicionales de empresas en Perú - CON PROTECCIÓN ANTI-DUPLICACIÓN
+    formatted = formatted.replace(/\b(S\. en C\.S\.)\b(?!.*\(S\. en C\.S\.\))/gi, 'Sociedad en Comandita Simple (S. en C.S.)')
+    formatted = formatted.replace(/\bSociedad en Comandita Simple\b(?!.*\(S\. en C\.S\.\))/gi, 'Sociedad en Comandita Simple (S. en C.S.)')
+    
+    formatted = formatted.replace(/\b(S\. en C\.P\.A\.)\b(?!.*\(S\. en C\.P\.A\.\))/gi, 'Sociedad en Comandita por Acciones (S. en C.P.A.)')
+    formatted = formatted.replace(/\bSociedad en Comandita por Acciones\b(?!.*\(S\. en C\.P\.A\.\))/gi, 'Sociedad en Comandita por Acciones (S. en C.P.A.)')
+    
+    formatted = formatted.replace(/\b(S\.C\.)\b(?!.*\(S\.C\.\))/gi, 'Sociedad Colectiva (S.C.)')
+    formatted = formatted.replace(/\bSociedad Colectiva\b(?!.*\(S\.C\.\))/gi, 'Sociedad Colectiva (S.C.)')
 
     // ==================== ESPACIADO PROFESIONAL ====================
     // Asegurar espaciado adecuado después de títulos
