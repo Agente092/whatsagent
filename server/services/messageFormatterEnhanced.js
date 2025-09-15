@@ -381,10 +381,18 @@ Estoy experimentando dificultades técnicas temporales en mi sistema de asesorí
     let formatted = text
 
     // Formateo especial para estructuras empresariales (usando asterisco simple para WhatsApp)
-    formatted = formatted.replace(/\b(S\.R\.L\.|SRL|Sociedad de Responsabilidad Limitada)\b/gi, '🏢 *S.R.L. (Sociedad de Responsabilidad Limitada)*')
-    formatted = formatted.replace(/\b(S\.A\.C\.|SAC|Sociedad Anónima Cerrada)\b/gi, '🏢 *S.A.C. (Sociedad Anónima Cerrada)*')
-    formatted = formatted.replace(/\b(S\.A\.|SA|Sociedad Anónima)\b/gi, '🏢 *S.A. (Sociedad Anónima)*')
-    formatted = formatted.replace(/\b(EIRL|Empresa Individual de Responsabilidad Limitada)\b/gi, '👤 *EIRL (Empresa Individual de Responsabilidad Limitada)*')
+    // 🚨 CORRECCIÓN CRÍTICA: Evitar duplicaciones usando negative lookaheads
+    formatted = formatted.replace(/\b(S\.R\.L\.|SRL)\b(?!.*\(S\.R\.L\.\))/gi, '🏢 *S.R.L. (Sociedad de Responsabilidad Limitada)*')
+    formatted = formatted.replace(/\bSociedad de Responsabilidad Limitada\b(?!.*\(S\.R\.L\.\))/gi, '🏢 *S.R.L. (Sociedad de Responsabilidad Limitada)*')
+    
+    formatted = formatted.replace(/\b(S\.A\.C\.|SAC)\b(?!.*\(S\.A\.C\.\))/gi, '🏢 *S.A.C. (Sociedad Anónima Cerrada)*')
+    formatted = formatted.replace(/\bSociedad Anónima Cerrada\b(?!.*\(S\.A\.C\.\))/gi, '🏢 *S.A.C. (Sociedad Anónima Cerrada)*')
+    
+    formatted = formatted.replace(/\b(S\.A\.|SA)\b(?!\s*[AC]|\s*\(|\s*Cerrada|\s*Abierta|.*\(S\.A\.\))/gi, '🏢 *S.A. (Sociedad Anónima)*')
+    formatted = formatted.replace(/\bSociedad Anónima\b(?!\s*Cerrada|\s*Abierta|.*\(S\.A\.\))/gi, '🏢 *S.A. (Sociedad Anónima)*')
+    
+    formatted = formatted.replace(/\b(EIRL)\b(?!.*\(E\.I\.R\.L\.\))/gi, '👤 *EIRL (Empresa Individual de Responsabilidad Limitada)*')
+    formatted = formatted.replace(/\bEmpresa Individual de Responsabilidad Limitada\b(?!.*\(E\.I\.R\.L\.\))/gi, '👤 *EIRL (Empresa Individual de Responsabilidad Limitada)*')
 
     return this.formatResponse(formatted, corporateContext)
   }
