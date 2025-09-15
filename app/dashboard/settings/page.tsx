@@ -18,7 +18,9 @@ import {
   Phone,
   Clock,
   Bot,
-  ArrowLeft
+  ArrowLeft,
+  AlertCircle,
+  Trash2
 } from 'lucide-react'
 
 interface ConfigSettings {
@@ -55,6 +57,7 @@ export default function SettingsPage() {
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [cleaning, setCleaning] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
@@ -104,6 +107,48 @@ export default function SettingsPage() {
 
   const handleChange = (field: keyof ConfigSettings, value: string | boolean) => {
     setConfig(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleCleanupAllData = async () => {
+    // Confirmar antes de proceder
+    const confirmed = window.confirm(
+      '¿Estás seguro de que quieres eliminar TODOS los datos del sistema?\n' +
+      'Esta acción eliminará todos los clientes, conversaciones y configuraciones.\n' +
+      'Los usuarios administradores se conservarán.\n\n' +
+      'Esta operación NO se puede deshacer.'
+    )
+    
+    if (!confirmed) return
+    
+    try {
+      setCleaning(true)
+      
+      // Obtener token de autenticación
+      const token = localStorage.getItem('token')
+      
+      const response = await fetch('/api/admin/cleanup-all', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      })
+
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        setMessage({ type: 'success', text: data.message })
+        // Recargar la página después de la limpieza
+        setTimeout(() => window.location.reload(), 2000)
+      } else {
+        throw new Error(data.message || 'Error al limpiar los datos')
+      }
+    } catch (error) {
+      console.error('Error cleaning up data:', error)
+      setMessage({ type: 'error', text: 'Error al limpiar los datos: ' + (error as Error).message })
+    } finally {
+      setCleaning(false)
+    }
   }
 
   if (loading) {
@@ -404,6 +449,40 @@ export default function SettingsPage() {
             </div>
           </Card>
         </div>
+
+        {/* Sección de Limpieza de Datos - Mobile Optimized */}
+        <Card className="p-4 sm:p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-red-200 border-2">
+          <div className="flex items-center gap-2 sm:gap-3 mb-4">
+            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 flex-shrink-0" />
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Limpieza de Datos</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Esta acción eliminará todos los clientes, conversaciones y configuraciones del sistema. 
+              <span className="font-semibold text-red-600"> Esta operación no se puede deshacer.</span>
+            </p>
+            
+            <Button 
+              onClick={handleCleanupAllData}
+              disabled={cleaning}
+              variant="destructive"
+              className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm sm:text-base flex items-center justify-center gap-2"
+            >
+              {cleaning ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Limpiando...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Limpiar Todos los Datos</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
 
         {/* Vista Previa - Mobile Optimized */}
         <Card className="p-4 sm:p-6 bg-white shadow-lg col-span-1 xl:col-span-2 mt-4 sm:mt-6">
