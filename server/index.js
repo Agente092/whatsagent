@@ -1042,6 +1042,97 @@ app.delete('/api/cleanup/auto-clients', async (req, res) => {
   }
 })
 
+// 📊 API USAGE STATS - NUEVO ENDPOINT PARA CONSUMO POR USUARIO
+app.get('/api/api-usage/stats', async (req, res) => {
+  try {
+    console.log('📊 Generando estadísticas de uso de API por usuario...')
+    
+    // 🎯 COSTOS DE GEMINI 1.5 FLASH
+    const GEMINI_COSTS = {
+      inputTokenCost: 0.075 / 1000000,  // $0.075 per million tokens
+      outputTokenCost: 0.30 / 1000000,  // $0.30 per million tokens
+      model: 'gemini-1.5-flash'
+    }
+    
+    // 👥 OBTENER CLIENTES ACTIVOS DESDE CLIENTSERVICE
+    const activeClients = await clientService.getAllClients()
+    
+    // 📊 OBTENER ESTADÍSTICAS DE API DESDE GEMINISERVICE
+    const apiStats = geminiService.getServiceStats()
+    
+    // 🔍 PROCESAR DATOS POR USUARIO
+    const userApiData = activeClients.map(client => {
+      // Simular datos de tokens basados en mensajes (en producción vendría de logs)
+      const estimatedInputTokens = client.messageCount * 150  // ~150 tokens por mensaje input promedio
+      const estimatedOutputTokens = client.messageCount * 300 // ~300 tokens por respuesta promedio
+      
+      const inputCost = estimatedInputTokens * GEMINI_COSTS.inputTokenCost
+      const outputCost = estimatedOutputTokens * GEMINI_COSTS.outputTokenCost
+      const totalCost = inputCost + outputCost
+      
+      // Calcular días desde primer contacto
+      const daysSinceFirstSeen = Math.max(1, Math.floor((Date.now() - new Date(client.firstSeen).getTime()) / (1000 * 60 * 60 * 24)))
+      const avgRequestsPerDay = client.messageCount / daysSinceFirstSeen
+      
+      return {
+        userId: client.id,
+        userName: client.name,
+        phone: client.phoneNumber,
+        totalRequests: client.messageCount,
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimatedOutputTokens,
+        totalCost: totalCost,
+        lastRequest: client.lastSeen,
+        avgRequestsPerDay: avgRequestsPerDay
+      }
+    })
+    
+    // 📈 CALCULAR ESTADÍSTICAS GENERALES
+    const totalUsers = userApiData.length
+    const totalCosts = userApiData.reduce((sum, user) => sum + user.totalCost, 0)
+    const totalRequests = userApiData.reduce((sum, user) => sum + user.totalRequests, 0)
+    const totalTokens = userApiData.reduce((sum, user) => sum + user.inputTokens + user.outputTokens, 0)
+    const avgCostPerUser = totalUsers > 0 ? totalCosts / totalUsers : 0
+    
+    // Estimación de costos de hoy (15% del total como ejemplo)
+    const costToday = totalCosts * 0.15
+    
+    const result = {
+      success: true,
+      users: userApiData.sort((a, b) => b.totalCost - a.totalCost), // Ordenar por costo descendente
+      stats: {
+        totalUsers,
+        totalCosts,
+        totalRequests,
+        totalTokens,
+        avgCostPerUser,
+        costToday
+      },
+      pricing: GEMINI_COSTS,
+      generated: new Date().toISOString()
+    }
+    
+    console.log(`✅ Estadísticas generadas para ${totalUsers} usuarios. Costo total: $${totalCosts.toFixed(6)}`)
+    res.json(result)
+    
+  } catch (error) {
+    console.error('❌ Error generando estadísticas de API:', error)
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al generar estadísticas de API: ' + error.message,
+      users: [],
+      stats: {
+        totalUsers: 0,
+        totalCosts: 0,
+        totalRequests: 0,
+        totalTokens: 0,
+        avgCostPerUser: 0,
+        costToday: 0
+      }
+    })
+  }
+})
+
 // Dashboard stats (sin autenticación para debugging temporal)
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
