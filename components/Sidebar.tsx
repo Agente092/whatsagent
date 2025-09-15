@@ -6,10 +6,8 @@ import { Button } from '@/components/ui/button'
 import { 
   LayoutDashboard, 
   Users, 
-  MessageSquare, 
   Settings, 
   LogOut, 
-  BarChart3,
   Shield
 } from 'lucide-react'
 
@@ -25,18 +23,6 @@ const navigation = [
     href: '/dashboard/clients',
     icon: Users,
     description: 'Gestión de suscriptores'
-  },
-  {
-    name: 'Conversaciones',
-    href: '/dashboard/conversations',
-    icon: MessageSquare,
-    description: 'Historial de mensajes'
-  },
-  {
-    name: 'Analytics',
-    href: '/dashboard/analytics',
-    icon: BarChart3,
-    description: 'Métricas y reportes'
   },
   {
     name: 'Bot Status',
@@ -89,7 +75,7 @@ export default function Sidebar({ isMobileMenuOpen = false, setIsMobileMenuOpen 
           <div className="flex items-center justify-start h-16 px-4 sm:px-6 border-b border-gray-200">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-base sm:text-lg font-bold text-gray-900 truncate">Business Advisor</span>
