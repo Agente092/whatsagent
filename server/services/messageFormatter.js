@@ -253,19 +253,20 @@ class MessageFormatter {
       }
       
       // 🔢 DETECTAR NUMERACIÓN MANUAL EXISTENTE (1., 2., 3., etc.)
-      const manualNumberMatch = line.match(/^(\d+)\.\ (.+)$/)
+      const manualNumberMatch = line.match(/^(\d+)\.\s+(.+)$/)
       if (manualNumberMatch) {
         const number = manualNumberMatch[1]
         const content = manualNumberMatch[2].trim()
         
-        // Si termina en ":" es un título, sino es contenido normal
+        // CORRECCIÓN CRÍTICA: Formato consistente para TODOS los títulos numerados
         if (content.endsWith(':')) {
           const cleanTitle = content.replace(':', '').trim()
           processedLines.push(`**${number}. ${cleanTitle}:**`)
-          processedLines.push('') // Salto después del título
         } else {
-          processedLines.push(`**${number}.** ${content}`)
+          // Agregar ":" si no lo tiene para mantener formato consistente
+          processedLines.push(`**${number}. ${content}:**`)
         }
+        processedLines.push('') // Salto después del título
         continue
       }
       
