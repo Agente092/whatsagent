@@ -431,6 +431,9 @@ RESPUESTA TÉCNICA COMPLETA:`
   buildEnhancedPromptWithPersonality(userMessage, knowledgeContext, conversationContext, intent, personalityInstructions, humanReasoningResult, clientData = null, companyData = null) {
     const { hasHistory, context, stage, currentTopic } = conversationContext
 
+    // 🚫 NO GENERAR SALUDO REPETITIVO SI YA HAY HISTORIAL
+    const isFollowUpQuestion = hasHistory && (intent === 'business_query' || intent === 'legal_query' || intent === 'corporate_query' || intent === 'financial_crime_query');
+    
     if (intent === 'greeting' || intent === 'help') {
       return this.buildWelcomePrompt(userMessage, knowledgeContext, clientData, companyData)
     }
@@ -458,8 +461,11 @@ ${companyData ?
 - Tono: ${companyData.tone || 'professional'}` 
   : 'Empresa: GHS - Representante: Luis G.'}
 
-🎭 PERSONALIDAD ADAPTADA:
-${personalityInstructions ? personalityInstructions.instructions : 'Personalidad: Consultor Profesional estándar'}
+${isFollowUpQuestion ? 
+  '🚨 IMPORTANTE: El cliente ya ha iniciado una conversación y ha hecho una pregunta específica. NO debes saludar nuevamente ni presentarte. Responde directamente a la pregunta.' : 
+  `🎭 PERSONALIDAD ADAPTADA:
+${personalityInstructions ? personalityInstructions.instructions : 'Personalidad: Consultor Profesional estándar'}`
+}
 
 🧠 CONTEXTO DE RAZONAMIENTO:
 ${humanReasoningResult ? 
@@ -546,7 +552,7 @@ INSTRUCCIONES CRÍTICAS MEJORADAS:
 17. SUGIERE MÉTODOS ADICIONALES que complementen las estrategias de tu base de conocimientos
 18. ADAPTA detalladamente las recomendaciones según el tipo de empresario (constructor, inmobiliario, etc.)
 19. EXPLICA a detalle cómo combinar estrategias para maximizar el éxito empresarial
-20. INCLUYE y extrae de tu base de conocimientos casos o situaciones específicos ejemplificando como se aplicaria en Perú dando ejemplos detallados
+20. INCLUYE y extrae de tu base de conocimientos casos o situaciones específicas ejemplificando como se aplicaria en Perú dando ejemplos detallados
 
 🏢 INSTRUCCIONES CRÍTICAS PARA TIPOS DE EMPRESAS EN PERÚ:
 21. USA ÚNICAMENTE estos nombres EXACTOS para tipos de empresas:
@@ -882,7 +888,7 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
     }
   }
 
-  // Generate a dynamic welcome message for clients
+  // Generar una respuesta de bienvenida para clientes
   async generateWelcomeMessage(clientPhone, messageText = '') {
     try {
       // 🆕 OBTENER O CREAR CLIENTE
@@ -893,6 +899,13 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
       const greetingConfig = this.configService.getGreetingConfig()
       const companyInfo = this.configService.getCompanyInfo()
       
+      // Obtener contexto de conversación para determinar la etapa
+      let conversationStage = 'initial';
+      if (this.memory) {
+        const conversationContext = this.memory.getConversationContext(clientPhone);
+        conversationStage = conversationContext.stage || 'initial';
+      }
+      
       // Si hay mensaje personalizado configurado, usarlo
       if (greetingConfig.welcome_message && greetingConfig.welcome_message.trim()) {
         return this.personalizeMessage(greetingConfig.welcome_message, client, companyInfo)
@@ -902,9 +915,9 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
       let welcomeMessage = ''
       
       if (greetingConfig.style === 'dynamic') {
-        welcomeMessage = this.generateDynamicGreeting(client, companyInfo)
+        welcomeMessage = this.generateDynamicGreeting(client, companyInfo, conversationStage)
       } else {
-        welcomeMessage = this.generateStyledGreeting(greetingConfig.style, client, companyInfo)
+        welcomeMessage = this.generateStyledGreeting(greetingConfig.style, client, companyInfo, conversationStage)
       }
       
       // 🎭 APLICAR FORMATEO MEJORADO CON SALUDO APROPIADO
@@ -933,86 +946,34 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
     }
   }
   
-  // Generar saludo dinámico basado en hora
-  generateDynamicGreeting(client, companyInfo) {
-    console.log('🔄 Generando saludo dinámico con:', {
-      clientName: client.name,
-      isNameConfirmed: client.isNameConfirmed,
-      companyName: companyInfo.name,
-      representativeName: companyInfo.representative.name
-    })
-    
-    const now = new Date()
-    const hour = now.getHours()
-    
-    let timeGreeting
-    if (hour >= 5 && hour < 12) {
-      timeGreeting = ['¡Buenos días!', '¡Buen día!', '¡Excelente mañana!'][Math.floor(Math.random() * 3)]
-    } else if (hour >= 12 && hour < 18) {
-      timeGreeting = ['¡Buenas tardes!', '¡Qué tal la tarde!'][Math.floor(Math.random() * 2)]
-    } else {
-      timeGreeting = ['¡Buenas noches!', '¡Qué tal la noche!'][Math.floor(Math.random() * 2)]
-    }
-    
-    const introVariations = [
-      'Soy su asesor empresarial especializado',
-      'Me presento como su consultor estratégico',
-      'Estoy aquí como su especialista en soluciones empresariales'
-    ]
-    
-    const questionVariations = [
-      '¿En qué aspecto estratégico puedo asistirle?',
-      '¿Cómo puedo ayudarle a optimizar su situación empresarial?',
-      '¿Qué desafío empresarial podemos analizar juntos?'
-    ]
-    
-    let greeting = timeGreeting
-    
-    // 👤 SOLO AGREGAR NOMBRE SI ESTÁ CONFIRMADO Y NO ES UN SALUDO
-    if (client.isNameConfirmed && client.name && 
-        !['hola', 'hi', 'hello'].includes(client.name.toLowerCase())) {
-      greeting += ` ${client.name},`
-    }
-    
-    greeting += ` ${introVariations[Math.floor(Math.random() * introVariations.length)]}`
-    
-    // 🏢 AGREGAR EMPRESA (CORREGIR COMPARACIÓN)
-    if (companyInfo.name && companyInfo.name !== 'Tu Empresa') {
-      greeting += ` de ${companyInfo.name}`
-    }
-    
-    // 👨‍💼 AGREGAR REPRESENTANTE
-    if (companyInfo.representative.name) {
-      greeting += `. Mi nombre es ${companyInfo.representative.name}`
-      if (companyInfo.representative.role) {
-        greeting += ` y soy ${companyInfo.representative.role}`
-      }
-    }
-    
-    greeting += `. ${questionVariations[Math.floor(Math.random() * questionVariations.length)]}`
-    
-    console.log('✅ Saludo dinámico generado:', greeting)
-    return greeting
-  }
-  
   // Generar saludo según estilo configurado
-  generateStyledGreeting(style, client, companyInfo) {
+  generateStyledGreeting(style, client, companyInfo, conversationStage = 'initial') {
     const clientName = client.isNameConfirmed ? client.name : ''
     const companyName = companyInfo.name !== 'Tu empresa' ? companyInfo.name : ''
     const repName = companyInfo.representative.name
     
+    // 🚫 NO SALUDAR REPETIDAMENTE EN CONVERSACIONES EN PROGRESO
+    if (conversationStage !== 'initial' && conversationStage !== 'greeting') {
+      // Para conversaciones en progreso, usar una presentación más sencilla
+      if (repName) {
+        return `Soy ${repName}, su asesor empresarial. `;
+      } else {
+        return 'Soy su asesor empresarial. ';
+      }
+    }
+    
     switch (style) {
       case 'professional':
-        return `Buenos días${clientName ? ` ${clientName}` : ''}. ${repName ? `Mi nombre es ${repName} y s` : 'S'}oy su asesor empresarial especializado${companyName ? ` de ${companyName}` : ''}. ¿En qué aspecto estratégico puedo asistirle?`
+        return `Buenos días${clientName ? ` ${clientName}` : ''}. ${repName ? `Mi nombre es ${repName} y s` : 'S'}oy su asesor empresarial especializado${companyName ? ` de ${companyName}` : ''}. ¿En qué puedo ayudarle?`
         
       case 'friendly':
         return `¡Hola${clientName ? ` ${clientName}` : ''}! 😊 ${repName ? `Soy ${repName}, t` : 'T'}u asesor empresarial${companyName ? ` de ${companyName}` : ''}. Estoy aquí para ayudarte con estrategias inteligentes para tu negocio. ¿En qué puedo ayudarte hoy?`
         
       case 'formal':
-        return `Estimado${clientName ? ` ${clientName}` : ' cliente'}, ${repName ? `me presento, soy ${repName}, a` : 'a'}sesor empresarial${companyName ? ` de ${companyName}` : ''}. Es un placer poder brindarle nuestros servicios especializados en consultoría empresarial. ¿Cómo podemos asistirle el día de hoy?`
+        return `Estimado${clientName ? ` ${clientName}` : ' cliente'}, ${repName ? `me presento, soy ${repName}, a` : 'a'}sesor empresarial${companyName ? ` de ${companyName}` : ''}. Es un placer poder brindarle nuestros servicios especializados en consultoría empresarial. ¿En qué puedo ayudarle?`
         
       default:
-        return this.generateDynamicGreeting(client, companyInfo)
+        return this.generateDynamicGreeting(client, companyInfo, conversationStage)
     }
   }
   
@@ -1112,7 +1073,7 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
           '¿Cuántas empresas quiere incluir en la estructura?',
           '¿En qué países tiene o planea tener operaciones?',
           '¿Qué nivel de complejidad está dispuesto a manejar?',
-          '¿Tiene asesores legales y contables especializados?'
+          'Tiene asesores legales y contables especializados?'
         ],
         'inversion_inmobiliaria': [
           '¿En qué tipo de inmuebles desea invertir?',
