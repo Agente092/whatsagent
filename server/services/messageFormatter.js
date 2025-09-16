@@ -193,8 +193,17 @@ class MessageFormatter {
     } else if (index > 1) {
       return `${message}\n\n✅ *Mensaje completo (${index}/${index})*\n\n¿Te gustaría profundizar en algún punto específico? 🤔`
     } else {
-      // 📝 NO AGREGAR PREGUNTA HARDCODEADA CUANDO ES RESPUESTA DIRECTA
-      return message
+      // 🚫 NO AGREGAR PREGUNTA HARDCODEADA CUANDO ES RESPUESTA DIRECTA
+      // Verificar si el mensaje ya contiene una pregunta o respuesta completa
+      const hasQuestion = message.includes('?') || message.includes('¿');
+      const hasConclusion = message.includes('conclusión') || message.includes('resumen') || message.includes('En resumen');
+      
+      // Solo agregar pregunta de seguimiento si no hay pregunta obvia en el mensaje
+      if (!hasQuestion && !hasConclusion) {
+        return `${message}\n\n¿Hay algo más en lo que pueda ayudarle?`;
+      }
+      
+      return message;
     }
   }
 
@@ -202,6 +211,12 @@ class MessageFormatter {
    * 🤔 AGREGAR PREGUNTAS PERSONALIZADAS AL FINAL DE LA RESPUESTA
    */
   addPersonalizedQuestions(responseText, questions) {
+    // 🚫 NO AGREGAR PREGUNTAS SI YA HAY UNA PREGUNTA CLARA EN EL TEXTO
+    const hasExistingQuestion = responseText.includes('?') || responseText.includes('¿');
+    if (hasExistingQuestion) {
+      return '';
+    }
+    
     if (!questions || questions.length === 0) return ''
     
     // 🔄 LIMITAR A 3-4 PREGUNTAS PARA NO SATURAR
