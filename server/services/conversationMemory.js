@@ -513,7 +513,8 @@ CONTEXTO ACTUAL:
       stage: context.stage,
       interests: context.interests,
       currentTopic: context.currentTopic,
-      messageCount: conversation.messages.length
+      messageCount: conversation.messages.length,
+      lastIntent: context.lastIntent || 'unknown'
     }
   }
 
