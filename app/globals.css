@@ -89,6 +89,43 @@
   .status-warning {
     @apply bg-yellow-100 text-yellow-800 border-yellow-200;
   }
+  
+  /* API Usage Table Enhancements */
+  .api-usage-table th {
+    @apply font-semibold text-gray-700 bg-gray-100 uppercase text-xs tracking-wider;
+  }
+  
+  .api-usage-table td {
+    @apply py-3 px-4 align-top;
+  }
+  
+  .api-usage-card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .api-usage-card-header {
+    @apply bg-gray-50 px-4 py-3 border-b border-gray-200 rounded-t-lg;
+  }
+  
+  .api-usage-card-title {
+    @apply text-lg font-semibold text-gray-800;
+  }
+  
+  .api-usage-card-content {
+    @apply p-4;
+  }
+  
+  .api-usage-stat {
+    @apply text-2xl font-bold;
+  }
+  
+  .api-usage-stat-label {
+    @apply text-xs text-gray-500 uppercase tracking-wide;
+  }
+  
+  .api-usage-user-card {
+    @apply border border-gray-200 rounded-lg p-4 mb-4 hover:bg-gray-50 transition-colors;
+  }
 }
 
 /* Custom scrollbar */
@@ -232,6 +269,23 @@
   .grid-responsive-4 {
     @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
   }
+  
+  /* Enhanced card utilities */
+  .card-enhanced {
+    @apply rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-md;
+  }
+  
+  .card-header-enhanced {
+    @apply flex flex-col space-y-1.5 p-6 border-b;
+  }
+  
+  .card-title-enhanced {
+    @apply text-2xl font-semibold leading-none tracking-tight;
+  }
+  
+  .card-content-enhanced {
+    @apply p-6;
+  }
 }
 
 /* Mobile-specific styles */
@@ -288,6 +342,35 @@
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+  }
+  
+  /* Mobile API Usage Card */
+  .mobile-api-card {
+    @apply border border-gray-200 rounded-lg p-4 mb-4;
+  }
+  
+  .mobile-api-card-header {
+    @apply flex justify-between items-start mb-3;
+  }
+  
+  .mobile-api-card-title {
+    @apply font-semibold text-gray-900;
+  }
+  
+  .mobile-api-card-stats {
+    @apply grid grid-cols-2 gap-3;
+  }
+  
+  .mobile-api-stat-card {
+    @apply bg-gray-50 p-3 rounded-lg;
+  }
+  
+  .mobile-api-stat-label {
+    @apply text-xs text-gray-500;
+  }
+  
+  .mobile-api-stat-value {
+    @apply font-medium;
   }
 }
 
