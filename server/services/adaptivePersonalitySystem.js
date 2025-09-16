@@ -25,7 +25,7 @@ class AdaptivePersonalitySystem {
   /**
    * 🌅 Generar saludo dinámico basado en hora y configuración
    */
-  generateDynamicGreeting(personalityType = 'professional', clientName = null, companyName = null) {
+  generateDynamicGreeting(personalityType = 'professional', clientName = null, companyName = null, conversationStage = 'initial') {
     // ⚙️ USAR CONFIGURACIÓN DINÁMICA SI ESTÁ DISPONIBLE
     let configuredCompanyName = companyName
     let representativeName = ''
@@ -44,6 +44,16 @@ class AdaptivePersonalitySystem {
       }
     }
     
+    // 🚫 NO SALUDAR REPETIDAMENTE EN CONVERSACIONES EN PROGRESO
+    if (conversationStage !== 'initial' && conversationStage !== 'greeting') {
+      // Para conversaciones en progreso, usar una presentación más sencilla
+      if (representativeName) {
+        return `Soy ${representativeName}, su asesor empresarial. `;
+      } else {
+        return 'Soy su asesor empresarial. ';
+      }
+    }
+    
     const now = new Date()
     const hour = now.getHours()
     
@@ -57,21 +67,19 @@ class AdaptivePersonalitySystem {
       timeGreeting = ['¡Buenas noches!', '¡Qué tal la noche!', '¡Excelente noche!'][Math.floor(Math.random() * 3)]
     }
     
-    // Variaciones creativas de presentación
+    // Variaciones creativas de presentación (MENOS REPETITIVAS)
     const introVariations = [
       'Soy su asesor empresarial especializado',
       'Me presento como su consultor estratégico',
-      'Estoy aquí como su especialista en soluciones empresariales',
-      'Soy su experto en estrategias de negocio',
-      'Me encuentro disponible como su asesor corporativo'
+      'Estoy aquí como su especialista en soluciones empresariales'
     ]
     
+    // Variaciones de preguntas (MENOS REPETITIVAS Y MÁS CONTEXTUALES)
     const questionVariations = [
-      '¿En qué aspecto estratégico puedo asistirle?',
-      '¿Cómo puedo ayudarle a optimizar su situación empresarial?',
-      '¿Qué desafío empresarial podemos analizar juntos?',
+      '¿En qué puedo ayudarle?',
+      '¿Qué tema empresarial le interesa desarrollar?',
       '¿En qué área de su negocio puedo brindarle mi expertise?',
-      '¿Qué estrategia empresarial le interesa desarrollar?'
+      '¿Qué desafío empresarial podemos analizar juntos?'
     ]
     
     // Construir saludo personalizado
@@ -93,7 +101,12 @@ class AdaptivePersonalitySystem {
       greeting += ` de ${configuredCompanyName}`
     }
     
-    greeting += `. ${questionVariations[Math.floor(Math.random() * questionVariations.length)]}`
+    // Solo agregar pregunta si es el inicio de la conversación
+    if (conversationStage === 'initial' || conversationStage === 'greeting') {
+      greeting += `. ${questionVariations[Math.floor(Math.random() * questionVariations.length)]}`
+    } else {
+      greeting += '. ';
+    }
     
     return greeting
   }
