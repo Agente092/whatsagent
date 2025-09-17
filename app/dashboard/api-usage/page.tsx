@@ -217,13 +217,13 @@ export default function ApiUsagePage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="card-enhanced">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Costo Total</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="api-usage-stat text-green-600">
+                  <div className="text-2xl font-bold text-green-600">
                     {formatCurrency(apiStats.totalCosts)}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -232,39 +232,39 @@ export default function ApiUsagePage() {
                 </CardContent>
               </Card>
 
-              <Card className="card-enhanced">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="api-usage-stat">{apiStats.totalUsers}</div>
+                  <div className="text-2xl font-bold">{apiStats.totalUsers}</div>
                   <p className="text-xs text-muted-foreground">
                     {formatCurrency(apiStats.avgCostPerUser)} promedio
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="card-enhanced">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
                   <BarChart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="api-usage-stat">{formatNumber(apiStats.totalRequests)}</div>
+                  <div className="text-2xl font-bold">{formatNumber(apiStats.totalRequests)}</div>
                   <p className="text-xs text-muted-foreground">
                     {formatNumber(Math.round(apiStats.totalRequests / apiStats.totalUsers))} por usuario
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="card-enhanced">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Tokens</CardTitle>
                   <Cpu className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="api-usage-stat">{formatNumber(apiStats.totalTokens)}</div>
+                  <div className="text-2xl font-bold">{formatNumber(apiStats.totalTokens)}</div>
                   <p className="text-xs text-muted-foreground">
                     Input + Output tokens
                   </p>
@@ -295,57 +295,56 @@ export default function ApiUsagePage() {
               </CardContent>
             </Card>
 
-            {/* Users Table - Improved Design */}
-            <Card className="api-usage-card overflow-hidden">
-              <CardHeader className="api-usage-card-header">
-                <CardTitle className="api-usage-card-title">Consumo por Usuario</CardTitle>
+            {/* Users Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Consumo por Usuario</CardTitle>
                 <CardDescription>
                   Detalle de costos y uso de API por cada usuario activo
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full api-usage-table">
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
                     <thead>
-                      <tr>
-                        <th className="text-left p-4 font-semibold text-gray-700">Usuario</th>
-                        <th className="text-left p-4 font-semibold text-gray-700">Requests</th>
-                        <th className="text-left p-4 font-semibold text-gray-700">Input Tokens</th>
-                        <th className="text-left p-4 font-semibold text-gray-700">Output Tokens</th>
-                        <th className="text-left p-4 font-semibold text-gray-700">Costo Total</th>
-                        <th className="text-left p-4 font-semibold text-gray-700">Último Request</th>
+                      <tr className="border-b">
+                        <th className="text-left p-2 font-medium">Usuario</th>
+                        <th className="text-left p-2 font-medium">Requests</th>
+                        <th className="text-left p-2 font-medium">Input Tokens</th>
+                        <th className="text-left p-2 font-medium">Output Tokens</th>
+                        <th className="text-left p-2 font-medium">Costo Total</th>
+                        <th className="text-left p-2 font-medium">Último Request</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody>
                       {apiUsageData.map((user) => (
-                        <tr key={user.userId} className="hover:bg-gray-50 transition-colors">
-                          <td className="p-4">
+                        <tr key={user.userId} className="border-b hover:bg-gray-50">
+                          <td className="p-2">
                             <div>
-                              <p className="font-medium text-gray-900">{user.userName}</p>
+                              <p className="font-medium">{user.userName}</p>
                               <p className="text-sm text-gray-500">{user.phone}</p>
                             </div>
                           </td>
-                          <td className="p-4">
-                            <Badge variant="outline" className="text-sm">
+                          <td className="p-2">
+                            <Badge variant="outline">
                               {formatNumber(user.totalRequests)}
                             </Badge>
                             <p className="text-xs text-gray-500 mt-1">
                               {user.avgRequestsPerDay.toFixed(1)}/día
                             </p>
                           </td>
-                          <td className="p-4">
-                            <span className="text-sm font-mono text-gray-700">{formatNumber(user.inputTokens)}</span>
+                          <td className="p-2">
+                            <span className="text-sm">{formatNumber(user.inputTokens)}</span>
                           </td>
-                          <td className="p-4">
-                            <span className="text-sm font-mono text-gray-700">{formatNumber(user.outputTokens)}</span>
+                          <td className="p-2">
+                            <span className="text-sm">{formatNumber(user.outputTokens)}</span>
                           </td>
-                          <td className="p-4">
-                            <span className="font-semibold text-green-600">
+                          <td className="p-2">
+                            <span className="font-medium text-green-600">
                               {formatCurrency(user.totalCost)}
                             </span>
                           </td>
-                          <td className="p-4">
+                          <td className="p-2">
                             <span className="text-sm text-gray-600">
                               {formatDate(user.lastRequest)}
                             </span>
@@ -356,51 +355,8 @@ export default function ApiUsagePage() {
                   </table>
                 </div>
                 
-                {/* Mobile Card View */}
-                <div className="md:hidden">
-                  <div className="divide-y divide-gray-200">
-                    {apiUsageData.map((user) => (
-                      <div key={user.userId} className="mobile-api-card">
-                        <div className="mobile-api-card-header">
-                          <div>
-                            <h3 className="mobile-api-card-title">{user.userName}</h3>
-                            <p className="text-sm text-gray-500">{user.phone}</p>
-                          </div>
-                          <Badge variant="outline" className="shrink-0">
-                            {formatNumber(user.totalRequests)} reqs
-                          </Badge>
-                        </div>
-                        
-                        <div className="mobile-api-card-stats">
-                          <div className="mobile-api-stat-card">
-                            <p className="mobile-api-stat-label">Input Tokens</p>
-                            <p className="mobile-api-stat-value font-mono">{formatNumber(user.inputTokens)}</p>
-                          </div>
-                          <div className="mobile-api-stat-card">
-                            <p className="mobile-api-stat-label">Output Tokens</p>
-                            <p className="mobile-api-stat-value font-mono">{formatNumber(user.outputTokens)}</p>
-                          </div>
-                          <div className="mobile-api-stat-card">
-                            <p className="mobile-api-stat-label">Costo Total</p>
-                            <p className="mobile-api-stat-value font-semibold text-green-600">{formatCurrency(user.totalCost)}</p>
-                          </div>
-                          <div className="mobile-api-stat-card">
-                            <p className="mobile-api-stat-label">Promedio</p>
-                            <p className="mobile-api-stat-value">{user.avgRequestsPerDay.toFixed(1)}/día</p>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs text-gray-500">Último Request</p>
-                          <p className="text-sm text-gray-600">{formatDate(user.lastRequest)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
                 {apiUsageData.length === 0 && (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-8 text-gray-500">
                     <Cpu className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>No hay datos de uso de API disponibles</p>
                   </div>
