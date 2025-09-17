@@ -622,10 +622,10 @@ app.post('/api/legal/lookup', authenticateToken, async (req, res) => {
   }
 })
 
-// Semantic search endpoint
-app.post('/api/search/semantic', authenticateToken, async (req, res) => {
+// 🔍 ENDPOINT DE PRUEBA PARA BÚSQUEDA EN INTERNET
+app.get('/api/search/test', async (req, res) => {
   try {
-    const { query, options = {} } = req.body
+    const { query } = req.query
     
     if (!query) {
       return res.status(400).json({
@@ -634,30 +634,65 @@ app.post('/api/search/semantic', authenticateToken, async (req, res) => {
       })
     }
 
-    if (!geminiService.semanticSearch) {
-      return res.status(404).json({
-        success: false,
-        message: 'Semantic search not available'
-      })
-    }
-
-    const results = await geminiService.semanticSearch.search(query, options)
+    // Crear instancia del servicio de búsqueda
+    const InternetSearchService = require('./services/internetSearch')
+    const searchService = new InternetSearchService()
+    
+    const results = await searchService.search(query)
     
     res.json({
       success: true,
-      timestamp: new Date().toISOString(),
-      ...results
+      query: query,
+      results: results,
+      timestamp: new Date().toISOString()
     })
-
   } catch (error) {
-    console.error('Error in semantic search:', error)
+    console.error('Error in internet search test:', error)
     res.status(500).json({
       success: false,
-      message: 'Error performing semantic search',
+      message: 'Error performing internet search',
       error: error.message
     })
   }
 })
+
+// 🔍 ENDPOINT PARA BÚSQUEDA EN TIEMPO REAL DESDE WHATSAPP
+app.post('/api/search/realtime', async (req, res) => {
+  try {
+    const { message, clientData } = req.body
+    
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message parameter is required'
+      })
+    }
+
+    // Crear instancia del servicio de búsqueda
+    const InternetSearchService = require('./services/internetSearch')
+    const searchService = new InternetSearchService()
+    
+    // Realizar búsqueda
+    const results = await searchService.search(message)
+    
+    res.json({
+      success: true,
+      message: message,
+      results: results,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('Error in real-time internet search:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error performing real-time internet search',
+      error: error.message
+    })
+  }
+})
+
+module.exports = app
+
 
 // Semantic search stats endpoint
 app.get('/api/search/stats', authenticateToken, async (req, res) => {
@@ -681,7 +716,7 @@ app.get('/api/search/stats', authenticateToken, async (req, res) => {
     console.error('Error getting semantic search stats:', error)
     res.status(500).json({
       success: false,
-      message: 'Error retrieving semantic search statistics',
+      message: 'Error getting semantic search stats',
       error: error.message
     })
   }
@@ -2472,139 +2507,233 @@ function startKeepAliveSystem() {
     purpose: 'prevent_render_sleep'
   })
 
-  // 🔧 Función HTTP nativa para hacer peticiones (sin dependencias externas)
-  const makeRequest = (url, options = {}) => {
-    return new Promise((resolve, reject) => {
-      try {
-        const parsedUrl = new URL(url)
-        const isHttps = parsedUrl.protocol === 'https:'
-        const client = isHttps ? https : http
+  // 🔄 SISTEMA KEEP-ALIVE PARA RENDER
+  function startKeepAliveSystem() {
+    // Determinar la URL del servicio basándose en las variables de entorno
+    const serviceUrl = process.env.RENDER_EXTERNAL_URL || 
+                      process.env.NEXTAUTH_URL || 
+                      'https://fitpro-s1ct.onrender.com' // Basándome en tu configuración de render.yaml
+    
+    console.log('🔄 =========================================')
+    console.log('🔄     SISTEMA KEEP-ALIVE INICIADO      ')
+    console.log('🔄 =========================================')
+    console.log(`🌐 URL del servicio: ${serviceUrl}`)
+    console.log(`⏰ Intervalo: 14 minutos`)
+    console.log(`🎯 Objetivo: Evitar suspensión por inactividad`)
+    console.log('🔄 =========================================')
+    
+    logger.info('Keep-alive system started', {
+      service: 'keep-alive',
+      targetUrl: serviceUrl,
+      intervalMinutes: 14,
+      purpose: 'prevent_render_sleep'
+    })
+
+    // 🔧 Función HTTP nativa para hacer peticiones (sin dependencias externas)
+    const makeRequest = (url, options = {}) => {
+      return new Promise((resolve, reject) => {
+        try {
+          const parsedUrl = new URL(url)
+          const isHttps = parsedUrl.protocol === 'https:'
+          const client = isHttps ? https : http
         
-        const requestOptions = {
-          hostname: parsedUrl.hostname,
-          port: parsedUrl.port || (isHttps ? 443 : 80),
-          path: parsedUrl.pathname + parsedUrl.search,
-          method: options.method || 'GET',
-          headers: {
-            'User-Agent': options.userAgent || 'Internal-KeepAlive-System/1.0',
-            'Accept': 'application/json',
-            ...options.headers
-          },
-          timeout: options.timeout || 10000
-        }
+          const requestOptions = {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || (isHttps ? 443 : 80),
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: options.method || 'GET',
+            headers: {
+              'User-Agent': options.userAgent || 'Internal-KeepAlive-System/1.0',
+              'Accept': 'application/json',
+              ...options.headers
+            },
+            timeout: options.timeout || 10000
+          }
         
-        const req = client.request(requestOptions, (res) => {
-          let data = ''
-          res.on('data', (chunk) => {
-            data += chunk
-          })
-          res.on('end', () => {
-            resolve({
-              ok: res.statusCode >= 200 && res.statusCode < 300,
-              status: res.statusCode,
-              statusText: res.statusMessage,
-              data: data
+          const req = client.request(requestOptions, (res) => {
+            let data = ''
+            res.on('data', (chunk) => {
+              data += chunk
+            })
+            res.on('end', () => {
+              resolve({
+                ok: res.statusCode >= 200 && res.statusCode < 300,
+                status: res.statusCode,
+                statusText: res.statusMessage,
+                data: data
+              })
             })
           })
-        })
         
-        req.on('error', (error) => {
+          req.on('error', (error) => {
+            reject(error)
+          })
+        
+          req.on('timeout', () => {
+            req.destroy()
+            reject(new Error('Request timeout'))
+          })
+        
+          req.end()
+        } catch (error) {
           reject(error)
-        })
-        
-        req.on('timeout', () => {
-          req.destroy()
-          reject(new Error('Request timeout'))
-        })
-        
-        req.end()
-      } catch (error) {
-        reject(error)
-      }
-    })
-  }
+        }
+      })
+    }
 
-  // Función para hacer ping al servicio
-  const keepAlive = () => {
-    setInterval(async () => {
-      try {
-        console.log('🔄 Ejecutando keep-alive ping...')
+    // Función para hacer ping al servicio
+    const keepAlive = () => {
+      setInterval(async () => {
+        try {
+          console.log('🔄 Ejecutando keep-alive ping...')
         
-        const startTime = Date.now()
+          const startTime = Date.now()
+          const response = await makeRequest(`${serviceUrl}/keep-alive`, {
+            method: 'GET',
+            timeout: 10000,
+            userAgent: 'Internal-KeepAlive-System/1.0'
+          })
+        
+          const duration = Date.now() - startTime
+        
+          if (response.ok) {
+            console.log(`✅ Keep-alive exitoso - Status: ${response.status} - Tiempo: ${duration}ms`)
+            logger.info('Keep-alive ping successful', {
+              service: 'keep-alive',
+              status: response.status,
+              responseTime: duration,
+              timestamp: new Date().toISOString()
+            })
+          } else {
+            console.warn(`⚠️ Keep-alive respuesta no OK - Status: ${response.status}`)
+            logger.warn('Keep-alive ping returned non-OK status', {
+              service: 'keep-alive',
+              status: response.status,
+              responseTime: duration
+            })
+          }
+        } catch (error) {
+          console.error('❌ Error en keep-alive ping:', error.message)
+          logger.error('Keep-alive ping failed', {
+            service: 'keep-alive',
+            error: error.message,
+            timestamp: new Date().toISOString()
+          })
+        
+          // Si falla el ping al endpoint /keep-alive, intentar con la raíz
+          try {
+            const fallbackResponse = await makeRequest(serviceUrl, {
+              method: 'GET',
+              timeout: 10000,
+              userAgent: 'Internal-KeepAlive-Fallback/1.0'
+            })
+            console.log(`🔄 Fallback ping exitoso - Status: ${fallbackResponse.status}`)
+          } catch (fallbackError) {
+            console.error('❌ Fallback ping también falló:', fallbackError.message)
+          }
+        }
+      }, 14 * 60 * 1000) // 14 minutos en milisegundos
+    }
+
+    // Iniciar el sistema después de 30 segundos para dar tiempo al servidor
+    setTimeout(() => {
+      keepAlive()
+      console.log('🔄 Keep-alive system activo - próximo ping en 14 minutos')
+    }, 30000)
+
+    // También hacer un ping inicial después de 2 minutos para verificar que funciona
+    setTimeout(async () => {
+      try {
+        console.log('🔄 Ejecutando ping inicial de verificación...')
         const response = await makeRequest(`${serviceUrl}/keep-alive`, {
           method: 'GET',
           timeout: 10000,
-          userAgent: 'Internal-KeepAlive-System/1.0'
+          userAgent: 'Initial-KeepAlive-Test/1.0'
         })
-        
-        const duration = Date.now() - startTime
-        
-        if (response.ok) {
-          console.log(`✅ Keep-alive exitoso - Status: ${response.status} - Tiempo: ${duration}ms`)
-          logger.info('Keep-alive ping successful', {
-            service: 'keep-alive',
-            status: response.status,
-            responseTime: duration,
-            timestamp: new Date().toISOString()
-          })
-        } else {
-          console.warn(`⚠️ Keep-alive respuesta no OK - Status: ${response.status}`)
-          logger.warn('Keep-alive ping returned non-OK status', {
-            service: 'keep-alive',
-            status: response.status,
-            responseTime: duration
-          })
-        }
-      } catch (error) {
-        console.error('❌ Error en keep-alive ping:', error.message)
-        logger.error('Keep-alive ping failed', {
+        console.log(`✅ Ping inicial exitoso - Status: ${response.status}`)
+        logger.info('Initial keep-alive test successful', {
           service: 'keep-alive',
-          error: error.message,
-          timestamp: new Date().toISOString()
+          status: response.status,
+          test: 'initial_verification'
         })
-        
-        // Si falla el ping al endpoint /keep-alive, intentar con la raíz
-        try {
-          const fallbackResponse = await makeRequest(serviceUrl, {
-            method: 'GET',
-            timeout: 10000,
-            userAgent: 'Internal-KeepAlive-Fallback/1.0'
-          })
-          console.log(`🔄 Fallback ping exitoso - Status: ${fallbackResponse.status}`)
-        } catch (fallbackError) {
-          console.error('❌ Fallback ping también falló:', fallbackError.message)
-        }
+      } catch (error) {
+        console.error('❌ Ping inicial falló:', error.message)
+        logger.error('Initial keep-alive test failed', {
+          service: 'keep-alive',
+          error: error.message
+        })
       }
-    }, 14 * 60 * 1000) // 14 minutos en milisegundos
+    }, 2 * 60 * 1000) // 2 minutos
   }
 
-  // Iniciar el sistema después de 30 segundos para dar tiempo al servidor
-  setTimeout(() => {
-    keepAlive()
-    console.log('🔄 Keep-alive system activo - próximo ping en 14 minutos')
-  }, 30000)
-
-  // También hacer un ping inicial después de 2 minutos para verificar que funciona
-  setTimeout(async () => {
+  // 🔍 ENDPOINT DE PRUEBA PARA BÚSQUEDA EN INTERNET
+  app.get('/api/search/test', async (req, res) => {
     try {
-      console.log('🔄 Ejecutando ping inicial de verificación...')
-      const response = await makeRequest(`${serviceUrl}/keep-alive`, {
-        method: 'GET',
-        timeout: 10000,
-        userAgent: 'Initial-KeepAlive-Test/1.0'
-      })
-      console.log(`✅ Ping inicial exitoso - Status: ${response.status}`)
-      logger.info('Initial keep-alive test successful', {
-        service: 'keep-alive',
-        status: response.status,
-        test: 'initial_verification'
+      const { query } = req.query
+    
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          message: 'Query parameter is required'
+        })
+      }
+
+      // Crear instancia del servicio de búsqueda
+      const InternetSearchService = require('./services/internetSearch')
+      const searchService = new InternetSearchService()
+    
+      const results = await searchService.search(query)
+    
+      res.json({
+        success: true,
+        query: query,
+        results: results,
+        timestamp: new Date().toISOString()
       })
     } catch (error) {
-      console.error('❌ Ping inicial falló:', error.message)
-      logger.error('Initial keep-alive test failed', {
-        service: 'keep-alive',
+      console.error('Error in internet search test:', error)
+      res.status(500).json({
+        success: false,
+        message: 'Error performing internet search',
         error: error.message
       })
     }
-  }, 2 * 60 * 1000) // 2 minutos
+  })
+
+  // 🔍 ENDPOINT PARA BÚSQUEDA EN TIEMPO REAL DESDE WHATSAPP
+  app.post('/api/search/realtime', async (req, res) => {
+    try {
+      const { message, clientData } = req.body
+    
+      if (!message) {
+        return res.status(400).json({
+          success: false,
+          message: 'Message parameter is required'
+        })
+      }
+
+      // Crear instancia del servicio de búsqueda
+      const InternetSearchService = require('./services/internetSearch')
+      const searchService = new InternetSearchService()
+    
+      // Realizar búsqueda
+      const results = await searchService.search(message)
+    
+      res.json({
+        success: true,
+        message: message,
+        results: results,
+        timestamp: new Date().toISOString()
+      })
+    } catch (error) {
+      console.error('Error in real-time internet search:', error)
+      res.status(500).json({
+        success: false,
+        message: 'Error performing real-time internet search',
+        error: error.message
+      })
+    }
+  })
 }
+
+module.exports = app
