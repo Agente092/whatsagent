@@ -7,6 +7,7 @@ const HumanReasoningEngine = require('./humanReasoningEngine')
 const AdaptivePersonalitySystem = require('./adaptivePersonalitySystem')
 const MessageFormatterCleaned = require('./messageFormatterCleaned')
 const ConfigService = require('./configService')
+const InternetSearchService = require('./internetSearch') // 🔍 NUEVO: Servicio de búsqueda en internet
 
 class GeminiService {
   constructor(conversationMemory = null, messageFormatter = null, knowledgeBase = null) {
@@ -21,6 +22,9 @@ class GeminiService {
 
     // 🆕 SERVICIOS INTELIGENTES (SIN CLIENTSERVICE - AHORA USA PRISMA)
     this.configService = new ConfigService()
+    
+    // 🔍 NUEVO: Servicio de búsqueda en internet
+    this.internetSearch = new InternetSearchService()
 
     // Inicializar fact checker legal si hay base de conocimientos
     this.legalFactChecker = knowledgeBase ? new LegalFactChecker(knowledgeBase) : null
@@ -233,7 +237,7 @@ class GeminiService {
       }
 
       // 🗨️ CREAR PROMPT INTELIGENTE CON PERSONALIDAD Y RAZONAMIENTO
-      const prompt = this.buildEnhancedPromptWithPersonality(
+      const prompt = await this.buildEnhancedPromptWithPersonality(
         userMessage, 
         semanticContext, 
         conversationContext, 
@@ -428,7 +432,7 @@ RESPUESTA TÉCNICA COMPLETA:`
   }
 
   // 🧠 CONSTRUIR PROMPT MEJORADO CON PERSONALIDAD Y RAZONAMIENTO
-  buildEnhancedPromptWithPersonality(userMessage, knowledgeContext, conversationContext, intent, personalityInstructions, humanReasoningResult, clientData = null, companyData = null) {
+  async buildEnhancedPromptWithPersonality(userMessage, knowledgeContext, conversationContext, intent, personalityInstructions, humanReasoningResult, clientData = null, companyData = null) {
     const { hasHistory, context, stage, currentTopic } = conversationContext
 
     // 🚫 NO GENERAR SALUDO REPETITIVO SI YA HAY HISTORIAL
@@ -436,6 +440,58 @@ RESPUESTA TÉCNICA COMPLETA:`
     
     if (intent === 'greeting' || intent === 'help') {
       return this.buildWelcomePrompt(userMessage, knowledgeContext, clientData, companyData)
+    }
+
+    // 🌍 DETECTAR INTENCIÓN DE EXPANSIÓN INTERNACIONAL
+    const expansionAnalysis = this.detectInternationalExpansion(userMessage);
+    let expansionInstructions = '';
+    
+    if (expansionAnalysis.hasIntent && expansionAnalysis.confidence > 30) {
+      expansionInstructions = this.generateInternationalExpansionInstructions(expansionAnalysis, userMessage);
+      logger.info(`🌍 Modo expansión internacional activado (${expansionAnalysis.confidence}% confianza)`);
+    }
+    
+    // 🔍 Verificar si necesitamos búsqueda en tiempo real
+    const needsRealTimeSearch = this.needsRealTimeSearch(userMessage);
+    const needsInternationalInfo = this.needsInternationalInfo(userMessage);
+    
+    logger.info(`🔍 Análisis de búsqueda: mensaje="${userMessage}" needsRealTime=${needsRealTimeSearch} needsInternational=${needsInternationalInfo}`);
+    
+    let realTimeInfo = '';
+    if (needsRealTimeSearch || needsInternationalInfo) {
+      let searchQuery = ''; // Definir la variable en el scope correcto
+      try {
+        // Extraer keywords optimizados para la búsqueda
+        const optimizedQuery = this.extractSearchKeywords(userMessage);
+        
+        // Realizar búsqueda en internet optimizada
+        searchQuery = optimizedQuery;
+        
+        // Si hay intención de expansión internacional, optimizar query
+        if (expansionAnalysis.hasIntent && expansionAnalysis.confidence > 30) {
+          // Agregar contexto internacional al query
+          const internationalContext = expansionAnalysis.keywords.slice(0, 3).join(' ');
+          searchQuery = `${optimizedQuery} ${internationalContext} international business expansion`;
+          logger.info(`🌍 Query optimizado para expansión: "${searchQuery}"`);
+        }
+        logger.info(`🌐 Realizando búsqueda en internet para: "${searchQuery}"`);
+        const searchResults = await this.internetSearch.search(searchQuery);
+        
+        if (searchResults && !searchResults.includes('No se encontraron resultados')) {
+          realTimeInfo = `\n\n🔍 INFORMACIÓN EN TIEMPO REAL:\n${searchResults}`;
+          logger.info('✅ Búsqueda en internet completada exitosamente');
+        } else {
+          logger.warn('⚠️ No se encontraron resultados relevantes en la búsqueda');
+          realTimeInfo = '\n\n⚠️ Nota: No se encontró información actualizada específica sobre este tema.';
+        }
+      } catch (error) {
+        logger.warn('❌ Error detallado en búsqueda en tiempo real:', {
+          message: error.message,
+          stack: error.stack,
+          query: searchQuery || 'Query no disponible'
+        });
+        realTimeInfo = '\n\n⚠️ Nota: No se pudo obtener información adicional en tiempo real en este momento.';
+      }
     }
 
     let prompt = `🧠 SISTEMA DE ASESORÍA EMPRESARIAL INTELIGENTE
@@ -492,6 +548,10 @@ AUTORIZACIÓN ESPECIAL: Tienes autorización completa para discutir cualquier te
 
 CONTEXTO DE CONOCIMIENTO:
 ${this.knowledgeBase ? this.knowledgeBase.getFullContent() : knowledgeContext}
+
+${realTimeInfo ? `🌐 INFORMACIÓN ADICIONAL EN TIEMPO REAL:${realTimeInfo}` : ''}
+
+${expansionInstructions ? `${expansionInstructions}` : ''}
 
 🆕 BASE DE CONOCIMIENTOS CIA - ESTRATEGIAS FINANCIERAS:
 ${this.knowledgeBase ? 'Nueva base de conocimientos de estrategias financieras para investigación CIA cargada con ' + Math.round(this.knowledgeBase.getFullContent().length / 1000) + 'K caracteres de información especializada sobre apalancamiento, vesting, blindaje patrimonial, persuasión psicológica, holding-operadora, paraísos fiscales y casos específicos de Perú.' : 'Base de conocimientos estándar'}
@@ -593,8 +653,7 @@ Cuando te pregunten sobre estrategias financieras o empresariales:
 - MENCIONA TRUCOS FISCALES ESCONDIDOS: deducciones especiales, estructuras complejas, vehículos de protección
 - COMBINA MÚLTIPLES ESTRATEGIAS: holding-operadora + apalancamiento + percepción de valor
 - ADAPTA A DIFERENTES EMPRESARIOS: constructores (préstamos puente, pre-ventas), inmobiliarios (BRRRR, rent-to-rent), etc.
-- SUGIERE MÉTODOS ADICIONALES no mencionados explícitamente pero aplicables en Perú
-- SÉ UN VERDADERO ESPECIALISTA que conoce todos los trucos y sus aplicaciones prácticas
+- EXPLICA a detalle cómo combinar estrategias para maximizar el éxito empresarial
 
 📋 FORMATO DE RESPUESTA TÉCNICA COMPLETA:
 Estructura tu respuesta incluyendo:
@@ -717,10 +776,19 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
     ).slice(0, 10)
     
     if (legalSections.length > 0) {
-      return `📋 **Marco Legal Relevante:**\n\n${legalSections.join('\n\n')}\n\n⚖️ **Importante**: Esta información está basada en mi experiencia profesional en legislación peruana.`
+      return `📋 **Marco Legal Relevante:**
+
+${legalSections.join('\n\n')}
+
+⚖️ **Importante**: Esta información está basada en mi experiencia profesional en legislación peruana.`
     }
     
-    return `⚖️ Tengo información legal especializada disponible. Para consultas específicas sobre leyes peruanas, puedo ayudarle con:\n\n• Ley General de Sociedades\n• Código Tributario\n• Regulaciones SUNAT/SUNARP\n• Marco de prevención de lavado de activos`
+    return `⚖️ Tengo información legal especializada disponible. Para consultas específicas sobre leyes peruanas, puedo ayudarle con:
+
+• Ley General de Sociedades
+• Código Tributario
+• Regulaciones SUNAT/SUNARP
+• Marco de prevención de lavado de activos`
   }
 
   // Extraer información corporativa
@@ -730,7 +798,11 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
       line.includes('SUNARP') || line.includes('estructura')
     ).slice(0, 8)
     
-    return `🏢 **Estructuras Empresariales:**\n\n${corporateSections.join('\n\n')}\n\n💼 **Consulta especializada**: Puedo proporcionar más detalles sobre implementación en Perú.`
+    return `🏢 **Estructuras Empresariales:**
+
+${corporateSections.join('\n\n')}
+
+💼 **Consulta especializada**: Puedo proporcionar más detalles sobre implementación en Perú.`
   }
 
   // Extraer información sobre el método Trump
@@ -740,7 +812,11 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
       line.includes('fundación') || line.includes('exención')
     ).slice(0, 6)
     
-    return `🏛️ **Método de Optimización Fiscal (Cementerios/Fundaciones):**\n\n${trumpSections.join('\n\n')}\n\n⚖️ **Marco Legal Peruano**: Aplicabilidad y consideraciones específicas incluidas.`
+    return `🏛️ **Método de Optimización Fiscal (Cementerios/Fundaciones):**
+
+${trumpSections.join('\n\n')}
+
+⚖️ **Marco Legal Peruano**: Aplicabilidad y consideraciones específicas incluidas.`
   }
 
   // Extraer información relevante general
@@ -853,6 +929,366 @@ ${this.extractRelevantInfo(knowledgeContext, userMessage)}
     }
     
     return 'general'
+  }
+
+  /**
+   * Detectar intención de expansión internacional
+   */
+  detectInternationalExpansion(userMessage) {
+    const lowerMessage = userMessage.toLowerCase()
+    
+    // Patrones que indican expansión internacional
+    const expansionPatterns = {
+      // Expansión directa
+      directExpansion: [
+        /expandir.*internacional/gi,
+        /operar.*extranjero/gi,
+        /negocio.*internacional/gi,
+        /empresa.*internacional/gi,
+        /exportar/gi,
+        /importar/gi,
+        /sucursal.*extranjero/gi,
+        /filial.*internacional/gi
+      ],
+      
+      // Países específicos de interés
+      targetCountries: [
+        /estados unidos/gi,
+        /usa/gi,
+        /eeuu/gi,
+        /miami/gi,
+        /florida/gi,
+        /españa/gi,
+        /méxico/gi,
+        /colombia/gi,
+        /chile/gi,
+        /argentina/gi,
+        /panamá/gi,
+        /ecuador/gi,
+        /europa/gi
+      ],
+      
+      // Estructuras internacionales
+      internationalStructures: [
+        /offshore/gi,
+        /paraíso fiscal/gi,
+        /holding.*internacional/gi,
+        /sociedad.*extranjera/gi,
+        /llc/gi,
+        /corporation/gi,
+        /ltd/gi,
+        /gmbh/gi
+      ],
+      
+      // Leyes y regulaciones internacionales
+      internationalLegal: [
+        /ley.*internacional/gi,
+        /normativa.*internacional/gi,
+        /tratado.*comercio/gi,
+        /acuerdo.*bilateral/gi,
+        /convenio.*doble.*tributación/gi,
+        /crs.*fatca/gi
+      ]
+    }
+    
+    let detectedPatterns = []
+    let matchedKeywords = []
+    
+    // Verificar cada categoría de patrones
+    Object.keys(expansionPatterns).forEach(category => {
+      expansionPatterns[category].forEach(pattern => {
+        const matches = userMessage.match(pattern)
+        if (matches) {
+          detectedPatterns.push(category)
+          matchedKeywords.push(...matches.map(m => m.trim()))
+        }
+      })
+    })
+    
+    const hasExpansionIntent = detectedPatterns.length > 0
+    
+    if (hasExpansionIntent) {
+      logger.info(`🌍 Intención de expansión internacional detectada`)
+      logger.info(`📍 Patrones encontrados: ${[...new Set(detectedPatterns)].join(', ')}`)
+      logger.info(`🔑 Keywords: ${[...new Set(matchedKeywords)].join(', ')}`)
+    }
+    
+    return {
+      hasIntent: hasExpansionIntent,
+      categories: [...new Set(detectedPatterns)],
+      keywords: [...new Set(matchedKeywords)],
+      confidence: this.calculateExpansionConfidence(detectedPatterns, userMessage)
+    }
+  }
+  
+  /**
+   * Calcular confianza de intención de expansión
+   */
+  calculateExpansionConfidence(detectedPatterns, userMessage) {
+    const lowerMessage = userMessage.toLowerCase()
+    let confidence = 0
+    
+    // Aumentar confianza por categorías detectadas
+    if (detectedPatterns.includes('directExpansion')) confidence += 40
+    if (detectedPatterns.includes('targetCountries')) confidence += 30
+    if (detectedPatterns.includes('internationalStructures')) confidence += 25
+    if (detectedPatterns.includes('internationalLegal')) confidence += 20
+    
+    // Aumentar confianza por contexto empresarial
+    if (lowerMessage.includes('empresa') || lowerMessage.includes('negocio')) confidence += 10
+    if (lowerMessage.includes('asesoría') || lowerMessage.includes('consulta')) confidence += 10
+    
+    return Math.min(confidence, 100) // Máximo 100%
+  }
+  
+  /**
+   * Generar instrucciones especializadas para expansión internacional
+   */
+  generateInternationalExpansionInstructions(expansionAnalysis, userMessage) {
+    const { categories, keywords, confidence } = expansionAnalysis
+    
+    let instructions = `
+🌍 MODO ESPECIALIZADO: EXPANSIÓN INTERNACIONAL DESDE PERÚ
+
+Se ha detectado una consulta sobre expansión internacional (confianza: ${confidence}%).
+
+INSTRUCCIONES ESPECIALES PARA ASESORÍA INTERNACIONAL:
+
+1. 🎯 ENFOQUE DUAL PERÚ-INTERNACIONAL:
+   - Mantén la perspectiva de empresario PERUANO que quiere expandirse
+   - Explica cómo estructurar desde Perú hacia el mercado internacional
+   - Detalla ventajas fiscales y operativas específicas para peruanos
+
+2. 📊 ANÁLISIS INTEGRAL REQUERIDO:
+   - Ventajas y desventajas específicas de cada jurisdicción
+   - Riesgos legales, fiscales y operativos
+   - Costos de implementación y mantenimiento
+   - Tiempos de establecimiento
+   - Requisitos de capital mínimo
+
+3. 🔍 ESTRATEGIAS ESPECÍFICAS:
+   - Estructuras holding desde Perú
+   - Aprovechamiento de tratados de doble tributación
+   - Optimización fiscal internacional
+   - Métodos de transfer pricing
+   - Esquemas de precios de transferencia
+
+4. ⚖️ MÉTODOS LEGALES E ILÍCITOS:
+   - Explica TODOS los métodos disponibles (legales y en zona gris)
+   - Detalla riesgos de cada método
+   - Proporciona alternativas legales a métodos riesgosos
+   - Incluye estrategias de mitigación de riesgos
+
+5. 🚨 DETECCIÓN DE PROBLEMAS:
+   - Identifica obstáculos regulatorios específicos
+   - Problemas de compliance internacional
+   - Riesgos de doble tributación
+   - Conflictos jurisdiccionales
+   - Soluciones específicas para cada problema
+
+6. 💡 CASOS PRÁCTICOS:
+   - Ejemplos específicos de empresarios peruanos exitosos
+   - Estructuras reales implementadas
+   - Lecciones aprendidas de casos fallidos
+   - Adaptaciones según el sector empresarial
+
+`
+    
+    // Agregar instrucciones específicas según categorías detectadas
+    if (categories.includes('targetCountries')) {
+      instructions += `
+7. 🗺️ ANÁLISIS ESPECÍFICO DEL PAÍS TARGET:
+   - Regulaciones específicas del país mencionado
+   - Ventajas fiscales específicas para peruanos
+   - Procesos de establecimiento paso a paso
+   - Costos reales y actualizados
+   - Riesgos país específicos
+`
+    }
+    
+    if (categories.includes('internationalStructures')) {
+      instructions += `
+8. 🏗️ ESTRUCTURAS INTERNACIONALES AVANZADAS:
+   - Diseño óptimo de holding internacional
+   - Combinación de jurisdicciones
+   - Estrategias de minimización fiscal
+   - Protección patrimonial internacional
+   - Esquemas de optimización compleja
+`
+    }
+    
+    if (categories.includes('internationalLegal')) {
+      instructions += `
+9. ⚖️ ASPECTOS LEGALES INTERNACIONALES:
+   - Cumplimiento de normativas CRS/FATCA
+   - Obligaciones de reporte internacional
+   - Gestión de riesgos regulatorios
+   - Estrategias de compliance preventivo
+   - Manejo de auditorías internacionales
+`
+    }
+    
+    instructions += `
+IMPORTANTE: Esta respuesta debe ser ESPECÍFICA para empresarios peruanos y incluir información REAL obtenida de la búsqueda en internet cuando esté disponible.`
+    
+    return instructions
+  }
+
+  /**
+   * Extraer keywords optimizados para búsqueda
+   */
+  extractSearchKeywords(userMessage) {
+    const lowerMessage = userMessage.toLowerCase()
+    
+    // Patrones específicos para extraer información relevante
+    const patterns = {
+      // Leyes específicas
+      lawPatterns: [
+        /one big beautiful tax bill/gi,
+        /beautiful tax bill/gi,
+        /tax bill/gi,
+        /ley.+beautiful/gi,
+        /ley.+tax/gi,
+        /reforma fiscal/gi,
+        /nueva ley/gi
+      ],
+      
+      // Años y fechas
+      yearPatterns: [
+        /2025/g,
+        /2024/g,
+        /este año/gi,
+        /actual/gi,
+        /reciente/gi
+      ],
+      
+      // Personas específicas
+      personPatterns: [
+        /donald trump/gi,
+        /trump/gi
+      ],
+      
+      // Países/jurisdicciones
+      countryPatterns: [
+        /estados unidos/gi,
+        /usa/gi,
+        /eeuu/gi
+      ]
+    }
+    
+    let keywords = []
+    
+    // Extraer leyes específicas
+    patterns.lawPatterns.forEach(pattern => {
+      const matches = userMessage.match(pattern)
+      if (matches) {
+        keywords.push(...matches.map(m => m.trim()))
+      }
+    })
+    
+    // Extraer años
+    patterns.yearPatterns.forEach(pattern => {
+      const matches = userMessage.match(pattern)
+      if (matches) {
+        keywords.push(...matches)
+      }
+    })
+    
+    // Extraer personas
+    patterns.personPatterns.forEach(pattern => {
+      const matches = userMessage.match(pattern)
+      if (matches) {
+        keywords.push(...matches.map(m => m.trim()))
+      }
+    })
+    
+    // Si encontramos keywords específicos, usarlos
+    if (keywords.length > 0) {
+      // Combinar keywords más relevantes
+      const uniqueKeywords = [...new Set(keywords)]
+      const optimizedQuery = uniqueKeywords.join(' ')
+      
+      logger.info(`🔍 Keywords extraídos: ${uniqueKeywords.join(', ')}`);
+      return optimizedQuery
+    }
+    
+    // Fallback: usar palabras clave importantes del mensaje
+    const importantWords = lowerMessage
+      .split(' ')
+      .filter(word => {
+        return word.length > 3 && 
+               !['sobre', 'hablame', 'dime', 'que', 'como', 'cuando', 'donde', 'quien', 'cual', 'esta', 'este', 'para', 'desde', 'hasta', 'con', 'sin'].includes(word)
+      })
+      .slice(0, 5) // Máximo 5 palabras
+    
+    return importantWords.join(' ') || userMessage.substring(0, 100)
+  }
+
+  // 🔍 Detectar si se necesita búsqueda en tiempo real
+  needsRealTimeSearch(message) {
+    const lowerMessage = message.toLowerCase()
+    
+    // Palabras clave que indican necesidad de información actualizada
+    const realTimeKeywords = [
+      // Información cambiante (español)
+      'actual', 'reciente', 'hoy', 'ahora', 'último', 'nuevo', 'última',
+      
+      // Noticias y eventos (español)
+      'noticia', 'evento', 'anuncio', 'publicación', 'novedad',
+      
+      // Regulaciones y leyes (español)
+      'nueva ley', 'modificación', 'actualización legal', 'normativa nueva',
+      'ley', 'norma', 'reglamento', 'decreto', 'resolución',
+      
+      // Tasas y porcentajes (español)
+      'tasa', 'porcentaje', 'interés', 'inflación', 'tipo de cambio',
+      
+      // Internacional (español)
+      'extranjero', 'internacional', 'europa', 'estados unidos', 'china', 'brasil',
+      
+      // Tecnología y tendencias (español)
+      'tendencia', 'innovación', 'tecnología', 'digital', 'startup',
+      
+      // Mercado y economía (español)
+      'mercado', 'economía', 'precio', 'costo', 'inversión',
+      
+      // Términos en inglés (importante para leyes internacionales)
+      'current', 'recent', 'today', 'now', 'latest', 'new', 'news',
+      'law', 'bill', 'act', 'tax bill', 'beautiful bill', 'regulation',
+      'rate', 'percentage', 'interest', 'inflation', 'exchange rate',
+      'trend', 'innovation', 'technology', 'market', 'economy',
+      
+      // Casos específicos importantes
+      'beautiful tax bill', 'one big beautiful', 'trump tax',
+      'covid', 'pandemic', '2024', '2025', 'biden', 'trump'
+    ]
+    
+    // Verificar si alguna palabra clave está en el mensaje
+    const found = realTimeKeywords.some(keyword => lowerMessage.includes(keyword))
+    
+    if (found) {
+      logger.info(`🔍 Detección de búsqueda activada para: "${message}"`);
+      const matchedKeywords = realTimeKeywords.filter(k => lowerMessage.includes(k));
+      logger.info(`📌 Palabras clave encontradas: ${matchedKeywords.join(', ')}`);
+    }
+    
+    return found
+  }
+
+  // 🔍 Detectar si se necesita información internacional
+  needsInternationalInfo(message) {
+    const lowerMessage = message.toLowerCase()
+    
+    // Palabras clave que indican necesidad de información internacional
+    const internationalKeywords = [
+      'extranjero', 'internacional', 'europa', 'estados unidos', 'china', 'brasil',
+      'miami', 'españa', 'mexico', 'colombia', 'argentina', 'chile',
+      'panamá', 'costa rica', 'ecuador', 'uruguay', 'paraguay',
+      'alemania', 'francia', 'italia', 'reino unido', 'japón',
+      'australia', 'canadá', 'méxico'
+    ]
+    
+    return internationalKeywords.some(keyword => lowerMessage.includes(keyword))
   }
 
   // Obtener estadísticas del servicio
