@@ -1,7 +1,7 @@
 class MessageFormatter {
   constructor() {
     this.maxMessageLength = 4000 // WhatsApp limit is ~4096 characters
-    this.preferredLength = 3500 // Leave some buffer
+    this.preferredLength = 3800 // 🎆 MÁS GENEROSO - dejar menos buffer
   }
 
   // Formatear respuesta con estilo profesional
@@ -132,44 +132,34 @@ class MessageFormatter {
     return formatted.trim()
   }
 
-  // Dividir mensaje en partes si es muy largo
+  // 🔧 DIVIDIR MENSAJE CORREGIDO - SIN FRAGMENTACIÓN PROBLEMÁTICA
   splitIntoMessages(text) {
-    if (text.length <= this.preferredLength) {
-      return [text]
+    // 🚀 NUEVA ESTRATEGIA: Solo dividir si REALMENTE es necesario
+    // WhatsApp permite hasta 4096 caracteres, usemos un límite más generoso
+    const REAL_WHATSAPP_LIMIT = 4000
+    
+    if (text.length <= REAL_WHATSAPP_LIMIT) {
+      return [text] // ✅ Enviar como mensaje único si cabe
     }
 
+    // 📝 Solo dividir cuando realmente exceda el límite de WhatsApp
     const messages = []
     const paragraphs = text.split('\n\n')
     let currentMessage = ''
     let messageIndex = 1
 
     for (const paragraph of paragraphs) {
-      // Si el párrafo solo es muy largo, dividirlo por oraciones
-      if (paragraph.length > this.preferredLength) {
-        const sentences = this.splitBySentences(paragraph)
-        
-        for (const sentence of sentences) {
-          if ((currentMessage + sentence).length > this.preferredLength) {
-            if (currentMessage.trim()) {
-              messages.push(this.addMessageFooter(currentMessage.trim(), messageIndex, true))
-              messageIndex++
-              currentMessage = sentence + '\n\n'
-            }
-          } else {
-            currentMessage += sentence + ' '
-          }
+      const potentialMessage = currentMessage + (currentMessage ? '\n\n' : '') + paragraph
+      
+      // Solo dividir si excede el límite REAL de WhatsApp
+      if (potentialMessage.length > REAL_WHATSAPP_LIMIT) {
+        if (currentMessage.trim()) {
+          messages.push(this.addMessageFooter(currentMessage.trim(), messageIndex, true))
+          messageIndex++
+          currentMessage = paragraph
         }
       } else {
-        // Verificar si agregar este párrafo excede el límite
-        if ((currentMessage + paragraph + '\n\n').length > this.preferredLength) {
-          if (currentMessage.trim()) {
-            messages.push(this.addMessageFooter(currentMessage.trim(), messageIndex, true))
-            messageIndex++
-            currentMessage = paragraph + '\n\n'
-          }
-        } else {
-          currentMessage += paragraph + '\n\n'
-        }
+        currentMessage = potentialMessage
       }
     }
 
@@ -178,7 +168,7 @@ class MessageFormatter {
       messages.push(this.addMessageFooter(currentMessage.trim(), messageIndex, false))
     }
 
-    return messages
+    return messages.length > 0 ? messages : [text] // ✅ Fallback seguro
   }
 
   // Dividir por oraciones
@@ -186,24 +176,15 @@ class MessageFormatter {
     return text.match(/[^\.!?]+[\.!?]+/g) || [text]
   }
 
-  // Agregar pie de mensaje
+  // 🏷️ AGREGAR PIE DE MENSAJE SIMPLIFICADO
   addMessageFooter(message, index, hasMore) {
     if (hasMore) {
-      return `${message}\n\n📄 *Continúa en el siguiente mensaje... (${index})*`
+      return `${message}\n\n📄 *(Continuación ${index})*`
     } else if (index > 1) {
-      return `${message}\n\n✅ *Mensaje completo (${index}/${index})*\n\n¿Te gustaría profundizar en algún punto específico? 🤔`
+      return `${message}\n\n✅ *(Mensaje ${index}/${index} - Completo)*`
     } else {
-      // 🚫 NO AGREGAR PREGUNTA HARDCODEADA CUANDO ES RESPUESTA DIRECTA
-      // Verificar si el mensaje ya contiene una pregunta o respuesta completa
-      const hasQuestion = message.includes('?') || message.includes('¿');
-      const hasConclusion = message.includes('conclusión') || message.includes('resumen') || message.includes('En resumen');
-      
-      // Solo agregar pregunta de seguimiento si no hay pregunta obvia en el mensaje
-      if (!hasQuestion && !hasConclusion) {
-        return `${message}\n\n¿Hay algo más en lo que pueda ayudarle?`;
-      }
-      
-      return message;
+      // 🚀 MENSAJE ÚNICO - NO AGREGAR FOOTER INNECESARIO
+      return message
     }
   }
 
