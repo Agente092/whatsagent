@@ -8,6 +8,7 @@ const AdaptivePersonalitySystem = require('./adaptivePersonalitySystem')
 const MessageFormatterCleaned = require('./messageFormatterCleaned')
 const ConfigService = require('./configService')
 const InternetSearchService = require('./internetSearch') // 🔍 NUEVO: Servicio de búsqueda en internet
+const IntelligentFollowUpSystem = require('./intelligentFollowUp') // 🤖 NUEVO: Sistema de seguimiento inteligente
 
 class GeminiService {
   constructor(conversationMemory = null, messageFormatter = null, knowledgeBase = null) {
@@ -25,6 +26,9 @@ class GeminiService {
     
     // 🔍 NUEVO: Servicio de búsqueda en internet
     this.internetSearch = new InternetSearchService()
+    
+    // 🤖 NUEVO: Sistema de seguimiento inteligente
+    this.followUpSystem = new IntelligentFollowUpSystem()
 
     // Inicializar fact checker legal si hay base de conocimientos
     this.legalFactChecker = knowledgeBase ? new LegalFactChecker(knowledgeBase) : null
@@ -451,6 +455,15 @@ RESPUESTA TÉCNICA COMPLETA:`
       logger.info(`🌍 Modo expansión internacional activado (${expansionAnalysis.confidence}% confianza)`);
     }
     
+    // 🧠 DETECTAR INTENCIÓN DE APROVECHAMIENTO TRANSFRONTERIZO
+    const crossBorderAnalysis = this.detectCrossBorderOpportunity(userMessage);
+    let crossBorderInstructions = '';
+    
+    if (crossBorderAnalysis.hasOpportunity && crossBorderAnalysis.confidence > 40) {
+      crossBorderInstructions = this.generateCrossBorderStrategy(crossBorderAnalysis, userMessage);
+      logger.info(`🚀 Modo aprovechamiento transfronterizo activado (${crossBorderAnalysis.confidence}% confianza)`);
+    }
+    
     // 🔍 Verificar si necesitamos búsqueda en tiempo real
     const needsRealTimeSearch = this.needsRealTimeSearch(userMessage);
     const needsInternationalInfo = this.needsInternationalInfo(userMessage);
@@ -467,12 +480,12 @@ RESPUESTA TÉCNICA COMPLETA:`
         // Realizar búsqueda en internet optimizada
         searchQuery = optimizedQuery;
         
-        // Si hay intención de expansión internacional, optimizar query
+        // Si hay intención de expansión internacional, NO agregar términos confusos
+        // En lugar de eso, el extractSearchKeywords ya maneja la optimización
         if (expansionAnalysis.hasIntent && expansionAnalysis.confidence > 30) {
-          // Agregar contexto internacional al query
-          const internationalContext = expansionAnalysis.keywords.slice(0, 3).join(' ');
-          searchQuery = `${optimizedQuery} ${internationalContext} international business expansion`;
-          logger.info(`🌍 Query optimizado para expansión: "${searchQuery}"`);
+          // Solo logear que se detectó expansión, pero usar el query optimizado tal como está
+          logger.info(`🌍 Expansión internacional detectada (${expansionAnalysis.confidence}% confianza)`);
+          logger.info(`🌐 Usando query optimizado sin modificaciones adicionales: "${searchQuery}"`);
         }
         logger.info(`🌐 Realizando búsqueda en internet para: "${searchQuery}"`);
         const searchResults = await this.internetSearch.search(searchQuery);
@@ -553,6 +566,8 @@ ${realTimeInfo ? `🌐 INFORMACIÓN ADICIONAL EN TIEMPO REAL:${realTimeInfo}` : 
 
 ${expansionInstructions ? `${expansionInstructions}` : ''}
 
+${crossBorderInstructions ? `${crossBorderInstructions}` : ''}
+
 🆕 BASE DE CONOCIMIENTOS CIA - ESTRATEGIAS FINANCIERAS:
 ${this.knowledgeBase ? 'Nueva base de conocimientos de estrategias financieras para investigación CIA cargada con ' + Math.round(this.knowledgeBase.getFullContent().length / 1000) + 'K caracteres de información especializada sobre apalancamiento, vesting, blindaje patrimonial, persuasión psicológica, holding-operadora, paraísos fiscales y casos específicos de Perú.' : 'Base de conocimientos estándar'}
 
@@ -589,6 +604,9 @@ INSTRUCCIONES CRÍTICAS MEJORADAS:
 14. PRESENTA toda la información como conocimiento profesional directo adquirido por experiencia
 15. NO uses frases como "según mi base de conocimientos" o "en mis archivos"
 16. Actúa como si toda la información la hayas obtenido por experiencia directa en el campo
+17. 🚨 SIEMPRE ANTICIPA RIESGOS: En cada estrategia que menciones, identifica automáticamente riesgos potenciales y proporciona métodos para prevenirlos, mitigarlos o superarlos
+18. 🛫INCLUYE SOLUCIONES PREVENTIVAS: Proporciona tanto métodos legales como en zona gris para afrontar cada dificultad potencial
+19. 🛡️ DESARROLLA PLANES DE CONTINGENCIA: Explica qué hacer en diferentes escenarios adversos o cuando las cosas salen mal
 
 🚨 REGLAS CRÍTICAS DE INTERACCIÓN - AUTOCONTENIDO:
 17. NUNCA propongas agendar citas, reuniones o llamadas presenciales
@@ -613,6 +631,20 @@ INSTRUCCIONES CRÍTICAS MEJORADAS:
 18. ADAPTA detalladamente las recomendaciones según el tipo de empresario (constructor, inmobiliario, etc.)
 19. EXPLICA a detalle cómo combinar estrategias para maximizar el éxito empresarial
 20. INCLUYE y extrae de tu base de conocimientos casos o situaciones específicas ejemplificando como se aplicaria en Perú dando ejemplos detallados
+
+🚨 ANTICIPACIÓN PROACTIVA DE RIESGOS Y DIFICULTADES:
+21. SIEMPRE IDENTIFICA Y MENCIONA los riesgos potenciales asociados con cada estrategia
+22. PROPORCIONA MÉTODOS ESPECÍFICOS para prevenir, mitigar o superar cada riesgo identificado
+23. INCLUYE TANTO SOLUCIONES LEGALES como métodos en zona gris para afrontar dificultades
+24. ANTICIPA problemas regulatorios, fiscales, operativos y financieros antes de que ocurran
+25. SUGIERE PLANES DE CONTINGENCIA específicos para diferentes escenarios adversos
+26. MENCIONA SEÑALES DE ALERTA temprana que indiquen problemas potenciales
+27. PROPORCIONA ESTRATEGIAS DE MITIGACIÓN tanto preventivas como correctivas
+28. INCLUYE consejos sobre cómo manejar auditorías, investigaciones o revisiones regulatorias
+29. DETALLA métodos para proteger activos ante posibles demandas, embargos o confiscaciones
+30. EXPLICA cómo diversificar riesgos geográficos, legales y operativos
+31. PROPORCIONA TIPS ESPECÍFICOS sobre qué hacer y qué NO hacer en cada situación de riesgo
+32. MENCIONA recursos legales, contactos especializados o estructuras de protección adicionales
 
 🏢 INSTRUCCIONES CRÍTICAS PARA TIPOS DE EMPRESAS EN PERÚ:
 21. USA ÚNICAMENTE estos nombres EXACTOS para tipos de empresas:
@@ -664,7 +696,10 @@ Estructura tu respuesta incluyendo:
 5. **COMBINACIONES CON OTRAS ESTRATEGIAS** cuando sea relevante
 6. **ADAPTACIÓN AL TIPO DE EMPRESARIO** (constructor, inmobiliario, etc.) *Cuando sea relevante o necesario
 7. **MÉTODOS ADICIONALES** complementarios no mencionados explícitamente
-8. **CASOS ESPECÍFICOS PERUANOS** con ejemplos detallando explicitamente como aplicar la estrategia en peru 
+8. **CASOS ESPECÍFICOS PERUANOS** con ejemplos detallando explicitamente como aplicar la estrategia en peru
+9. **🚨 ANTICIPACIÓN DE RIESGOS** - Identifica riesgos potenciales y cómo prevenirlos/superarlos
+10. **🛫MEDIDAS PREVENTIVAS** - Soluciones tanto legales como en zona gris para cada dificultad
+11. **🛡️ PLANES DE CONTINGENCIA** - Qué hacer ante diferentes escenarios adversos 
 
 💼 INFORMACIÓN DE CONTACTO Y FIRMA:
 AL FINAL de tu respuesta, cuando sea apropiado, firma como:
@@ -1138,90 +1173,232 @@ IMPORTANTE: Esta respuesta debe ser ESPECÍFICA para empresarios peruanos y incl
    * Extraer keywords optimizados para búsqueda
    */
   extractSearchKeywords(userMessage) {
-    const lowerMessage = userMessage.toLowerCase()
-    
-    // Patrones específicos para extraer información relevante
-    const patterns = {
-      // Leyes específicas
-      lawPatterns: [
-        /one big beautiful tax bill/gi,
-        /beautiful tax bill/gi,
-        /tax bill/gi,
-        /ley.+beautiful/gi,
-        /ley.+tax/gi,
-        /reforma fiscal/gi,
-        /nueva ley/gi
-      ],
+    try {
+      const lowerMessage = userMessage.toLowerCase()
       
-      // Años y fechas
-      yearPatterns: [
-        /2025/g,
-        /2024/g,
-        /este año/gi,
-        /actual/gi,
-        /reciente/gi
-      ],
+      // 🎯 EXTRACCIÓN INTELIGENTE UNIVERSAL - NO HARDCODEADA
       
-      // Personas específicas
-      personPatterns: [
-        /donald trump/gi,
-        /trump/gi
-      ],
+      // 🔍 PASO 1: Identificar tipo de consulta
+      const queryTypes = {
+        legalQuery: /\b(ley|norma|decreto|resolución|reglamento|código|bill|act|law|regulation)\b/gi,
+        currentInfo: /\b(nueva?|nuevo|reciente|actual|2024|2025|este\s+año|hoy|ahora|último?)\b/gi,
+        personQuery: /\b(presidente|ministro|senador|diputado|político|candidato|gobernador)\b/gi,
+        internationalQuery: /\b(internacional|extranjero|usa|eeuu|europa|china|brasil|estados\s+unidos)\b/gi
+      }
       
-      // Países/jurisdicciones
-      countryPatterns: [
-        /estados unidos/gi,
-        /usa/gi,
-        /eeuu/gi
+      // 📝 PASO 2: Limpiar y extraer palabras significativas
+      const stopWords = [
+        // Español
+        'que', 'sabes', 'conoces', 'de', 'la', 'el', 'en', 'para', 'como', 
+        'por', 'con', 'una', 'un', 'es', 'son', 'tiene', 'tengo', 'si', 'soy',
+        'me', 'te', 'se', 'le', 'lo', 'las', 'los', 'del', 'al', 'y', 'o',
+        'pero', 'porque', 'cuando', 'donde', 'quien', 'cual', 'cuales',
+        'sobre', 'hablame', 'dime', 'entonces', 'no', 'salio', 'trata',
+        'bien', 'favor', 'podría', 'usar', 'investiga',
+        // Inglés
+        'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
+        'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during',
+        'what', 'how', 'when', 'where', 'who', 'which', 'why', 'this', 'that'
       ]
-    }
-    
-    let keywords = []
-    
-    // Extraer leyes específicas
-    patterns.lawPatterns.forEach(pattern => {
-      const matches = userMessage.match(pattern)
-      if (matches) {
-        keywords.push(...matches.map(m => m.trim()))
-      }
-    })
-    
-    // Extraer años
-    patterns.yearPatterns.forEach(pattern => {
-      const matches = userMessage.match(pattern)
-      if (matches) {
-        keywords.push(...matches)
-      }
-    })
-    
-    // Extraer personas
-    patterns.personPatterns.forEach(pattern => {
-      const matches = userMessage.match(pattern)
-      if (matches) {
-        keywords.push(...matches.map(m => m.trim()))
-      }
-    })
-    
-    // Si encontramos keywords específicos, usarlos
-    if (keywords.length > 0) {
-      // Combinar keywords más relevantes
-      const uniqueKeywords = [...new Set(keywords)]
-      const optimizedQuery = uniqueKeywords.join(' ')
       
-      logger.info(`🔍 Keywords extraídos: ${uniqueKeywords.join(', ')}`);
-      return optimizedQuery
-    }
-    
-    // Fallback: usar palabras clave importantes del mensaje
-    const importantWords = lowerMessage
-      .split(' ')
-      .filter(word => {
-        return word.length > 3 && 
-               !['sobre', 'hablame', 'dime', 'que', 'como', 'cuando', 'donde', 'quien', 'cual', 'esta', 'este', 'para', 'desde', 'hasta', 'con', 'sin'].includes(word)
+      // Extraer palabras significativas
+      const words = lowerMessage
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => 
+          word.length > 2 && 
+          !stopWords.includes(word) &&
+          !/^\d+$/.test(word)
+        )
+      
+      // 🎯 PASO 3: Categorización inteligente
+      let queryCategory = 'general'
+      let priorityWords = []
+      let supportWords = []
+      
+      // Detectar categoría
+      if (queryTypes.legalQuery.test(userMessage)) {
+        queryCategory = 'legal'
+      } else if (queryTypes.personQuery.test(userMessage)) {
+        queryCategory = 'person'
+      } else if (queryTypes.internationalQuery.test(userMessage)) {
+        queryCategory = 'international'
+      }
+      
+      // 📈 PASO 4: Selección inteligente de palabras clave
+      const importanceRanking = {
+        // Términos legales (alta prioridad)
+        legal: ['ley', 'bill', 'act', 'norma', 'decreto', 'código', 'reforma', 'legislación', 'regulación', 'regulation'],
+        // Temporal (media-alta prioridad)
+        temporal: ['2025', '2024', 'nueva', 'nuevo', 'reciente', 'actual', 'últimas', 'último'],
+        // Geográfico (media prioridad)
+        geographic: ['usa', 'eeuu', 'estados', 'unidos', 'internacional', 'extranjero', 'colombia', 'argentina', 'salvador', 'miami'],
+        // Términos técnicos y especializados (alta prioridad)
+        technical: ['criptomonedas', 'blockchain', 'bitcoin', 'ethereum', 'fiscales', 'tributaria', 'inversiones'],
+        // Acrónimos y organizaciones (alta prioridad)
+        organizations: ['ue', 'usa', 'eeuu', 'sunarp', 'sunat', 'bcrp'],
+        // Nombres propios y entidades (alta prioridad cuando aparecen)
+        entities: [] // Se detectarán dinámicamente
+      }
+      
+      // Clasificar palabras por importancia
+      words.forEach(word => {
+        let assigned = false
+        
+        // Verificar en categorías predefinidas
+        for (const [category, categoryWords] of Object.entries(importanceRanking)) {
+          if (categoryWords.includes(word)) {
+            priorityWords.push(word)
+            assigned = true
+            break
+          }
+        }
+        
+        // Detectar nombres propios (empiezan con mayúscula en texto original)
+        if (!assigned) {
+          const originalWord = userMessage.match(new RegExp(`\\b${word}\\b`, 'i'))
+          if (originalWord && originalWord[0] && originalWord[0][0] === originalWord[0][0].toUpperCase()) {
+            priorityWords.push(word)
+            assigned = true
+          }
+        }
+        
+        // Detectar acrónimos (palabras en mayúsculas)
+        if (!assigned && word.toUpperCase() === word && word.length >= 2) {
+          priorityWords.push(word)
+          assigned = true
+        }
+        
+        // Detectar palabras técnicas por longitud y sufijos
+        if (!assigned && (
+          word.endsWith('monedas') || 
+          word.endsWith('chain') || 
+          word.endsWith('coin') ||
+          word.endsWith('tecnología') ||
+          word.endsWith('ación') ||
+          word.length > 8 // Palabras largas suelen ser técnicas
+        )) {
+          priorityWords.push(word)
+          assigned = true
+        }
+        
+        // Si no es prioritaria, agregar a support
+        if (!assigned && word.length > 3) {
+          supportWords.push(word)
+        }
       })
-      .slice(0, 5) // Máximo 5 palabras
-    
-    return importantWords.join(' ') || userMessage.substring(0, 100)
+      
+      // 🎯 PASO 5: Construir query optimizado
+      let finalQuery = ''
+      
+      // Usar palabras prioritarias primero
+      if (priorityWords.length > 0) {
+        finalQuery = priorityWords.slice(0, 4).join(' ')
+        
+        // Agregar algunas palabras de soporte si hay espacio
+        if (finalQuery.length < 50 && supportWords.length > 0) {
+          finalQuery += ' ' + supportWords.slice(0, 2).join(' ')
+        }
+      } else {
+        // Si no hay palabras prioritarias, usar las mejores palabras de soporte
+        finalQuery = supportWords.slice(0, 5).join(' ')
+      }
+      
+      // 🔍 PASO 6: Optimización por tipo de consulta
+      
+      // 🎆 CASOS ESPECÍFICOS OPTIMIZADOS PARA MEJORES RESULTADOS
+      
+      // 1. Para Beautiful Bill tax
+      if (lowerMessage.includes('beautiful bill') && lowerMessage.includes('tax')) {
+        finalQuery = 'Beautiful Tax Bill 2025'
+      }
+      // 2. ⭐ CONSULTAS GENERALES SOBRE LEYES INTERNACIONALES
+      else if (lowerMessage.includes('leyes internacionales') || 
+               (lowerMessage.includes('ley') && lowerMessage.includes('internacional'))) {
+        finalQuery = 'international laws for businesses 2025'
+      }
+      // 3. Tratados de doble imposición
+      else if (lowerMessage.includes('doble imposición') || lowerMessage.includes('doble tributación')) {
+        finalQuery = 'double taxation treaties Peru 2025'
+      }
+      // 4. Países con convenios
+      else if (lowerMessage.includes('países') && (lowerMessage.includes('convenio') || lowerMessage.includes('tratado'))) {
+        finalQuery = 'countries tax treaties Peru agreements 2025'
+      }
+      // 5. Oportunidades de inversión internacionales
+      else if (lowerMessage.includes('oportunidades') && lowerMessage.includes('internacional')) {
+        finalQuery = 'international investment opportunities Peru 2025'
+      }
+      // 6. Regulaciones UE sobre criptomonedas
+      else if (lowerMessage.includes('regulación') && (lowerMessage.includes('ue') || lowerMessage.includes('europa'))) {
+        finalQuery = 'EU regulations cryptocurrency businesses 2025'
+      }
+      // 🎯 7. EMPRESAS FANTASMA/OFFSHORE POR PAÍSES (NUEVO)
+      else if ((lowerMessage.includes('empresa fantasma') || lowerMessage.includes('empresa offshore')) && 
+               (lowerMessage.includes('qué países') || lowerMessage.includes('que países') || lowerMessage.includes('países'))) {
+        finalQuery = 'best countries offshore companies shell corporations 2025'
+      }
+      // 🎯 8. CONSULTAS SOBRE JURISDICCIONES FISCALES (NUEVO)
+      else if (lowerMessage.includes('jurisdicción') || lowerMessage.includes('paraíso fiscal')) {
+        finalQuery = 'best tax havens jurisdictions Peru residents 2025'
+      }
+      // 🎯 9. CONSULTAS SOBRE QUÉ PAÍSES PARA ALGO ESPECÍFICO (NUEVO)
+      else if ((lowerMessage.includes('qué países') || lowerMessage.includes('que países') || lowerMessage.includes('cuáles países')) && 
+               (lowerMessage.includes('puedo') || lowerMessage.includes('crear') || lowerMessage.includes('mejor'))) {
+        const businessContext = lowerMessage.includes('empresa') ? 'business' : 
+                               lowerMessage.includes('inversión') ? 'investment' : 
+                               lowerMessage.includes('cuenta') ? 'banking' : 'business'
+        finalQuery = `best countries for ${businessContext} offshore structures 2025`
+      }
+      // 🎯 10. TRATADOS Y CONVENIOS TRIBUTARIOS (NUEVO)
+      else if ((lowerMessage.includes('tratado') || lowerMessage.includes('convenio')) && 
+               (lowerMessage.includes('tributario') || lowerMessage.includes('fiscal') || lowerMessage.includes('doble'))) {
+        finalQuery = 'Peru tax treaties double taxation agreements countries list 2025'
+      }
+      // 11. Para consultas legales internacionales genéricas
+      else if (queryCategory === 'legal' && queryTypes.internationalQuery.test(userMessage)) {
+        // Convertir términos clave al inglés para mejor búsqueda
+        finalQuery = finalQuery
+          .replace(/\bley\b/g, 'law')
+          .replace(/\bnorma\b/g, 'regulation')
+          .replace(/\bdecreto\b/g, 'decree')
+          .replace(/\breforma\b/g, 'reform')
+          .replace(/\binternacional\b/g, 'international')
+          .replace(/\bempresario\b/g, 'business')
+        
+        // Agregar "2025" para información actualizada
+        if (!finalQuery.includes('2025')) {
+          finalQuery += ' 2025'
+        }
+      }
+      
+      // 🚨 PASO 7: Validación y limpieza final
+      if (!finalQuery || finalQuery.length < 3) {
+        // Fallback: tomar las primeras palabras significativas
+        finalQuery = words.slice(0, 4).join(' ')
+      }
+      
+      // Limitar longitud
+      if (finalQuery.length > 80) {
+        finalQuery = finalQuery.substring(0, 80).trim()
+      }
+      
+      logger.info(`🔍 Query original: "${userMessage}"`);
+      logger.info(`🎯 Query optimizado: "${finalQuery}"`);
+      logger.info(`📊 Categoría detectada: ${queryCategory}`);
+      
+      return finalQuery.trim()
+      
+    } catch (error) {
+      logger.error('❌ Error extrayendo keywords:', error)
+      // Fallback de emergencia: extraer palabras básicas
+      return userMessage.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 3)
+        .slice(0, 4)
+        .join(' ')
+    }
   }
 
   // 🔍 Detectar si se necesita búsqueda en tiempo real
@@ -1252,11 +1429,24 @@ IMPORTANTE: Esta respuesta debe ser ESPECÍFICA para empresarios peruanos y incl
       // Mercado y economía (español)
       'mercado', 'economía', 'precio', 'costo', 'inversión',
       
+      // 🎯 CONSULTAS ESPECÍFICAS QUE REQUIEREN BÚSQUEDA WEB (AGREGADO)
+      'qué países', 'que países', 'cuáles países', 'cuales países',
+      'en qué países', 'en que países', 'dónde puedo', 'donde puedo',
+      'países que', 'paises que', 'empresa fantasma', 'empresa offshore',
+      'jurisdicción', 'jurisdicciones', 'paraíso fiscal', 'paraisos fiscales',
+      'doble imposición', 'doble tributación', 'tratados fiscales',
+      'convenios tributarios', 'convenios fiscales', 'acuerdos tributarios',
+      'mejores países para', 'cuál país es mejor', 'cual pais es mejor',
+      'dónde es más conveniente', 'donde es mas conveniente',
+      'qué jurisdicciones', 'que jurisdicciones', 'lista de países',
+      
       // Términos en inglés (importante para leyes internacionales)
       'current', 'recent', 'today', 'now', 'latest', 'new', 'news',
       'law', 'bill', 'act', 'tax bill', 'beautiful bill', 'regulation',
       'rate', 'percentage', 'interest', 'inflation', 'exchange rate',
       'trend', 'innovation', 'technology', 'market', 'economy',
+      'which countries', 'what countries', 'best countries for',
+      'offshore jurisdictions', 'tax havens', 'double taxation',
       
       // Casos específicos importantes
       'beautiful tax bill', 'one big beautiful', 'trump tax',
@@ -1281,11 +1471,26 @@ IMPORTANTE: Esta respuesta debe ser ESPECÍFICA para empresarios peruanos y incl
     
     // Palabras clave que indican necesidad de información internacional
     const internationalKeywords = [
+      // Países específicos
       'extranjero', 'internacional', 'europa', 'estados unidos', 'china', 'brasil',
       'miami', 'españa', 'mexico', 'colombia', 'argentina', 'chile',
       'panamá', 'costa rica', 'ecuador', 'uruguay', 'paraguay',
       'alemania', 'francia', 'italia', 'reino unido', 'japón',
-      'australia', 'canadá', 'méxico'
+      'australia', 'canadá', 'méxico', 'singapur', 'hong kong',
+      'suiza', 'luxemburgo', 'irlanda', 'holanda', 'belgica',
+      
+      // 🎯 ESTRUCTURAS Y CONCEPTOS INTERNACIONALES (AGREGADO)
+      'empresa fantasma', 'empresa offshore', 'offshore', 'jurisdicción',
+      'paraíso fiscal', 'paraisos fiscales', 'shell company', 'shell corporation',
+      'tax haven', 'tax havens', 'doble imposición', 'doble tributación',
+      'tratados fiscales', 'convenios tributarios', 'convenios fiscales',
+      'acuerdos tributarios', 'holding internacional', 'estructura internacional',
+      
+      // 🎯 PREGUNTAS SOBRE PAÍSES (AGREGADO)
+      'qué países', 'que países', 'cuáles países', 'cuales países',
+      'en qué países', 'en que países', 'dónde puedo', 'donde puedo',
+      'países que', 'paises que', 'mejores países', 'mejores paises',
+      'cual país', 'cuál país', 'que país', 'qué país'
     ]
     
     return internationalKeywords.some(keyword => lowerMessage.includes(keyword))
@@ -1531,6 +1736,297 @@ IMPORTANTE: Esta respuesta debe ser ESPECÍFICA para empresarios peruanos y incl
     } catch (error) {
       logger.error('❌ Error generando preguntas personalizadas:', error)
       return ['¿Podría proporcionar más información para brindarle una asesoría más precisa?']
+    }
+  }
+
+  /**
+   * 🚀 DETECTAR OPORTUNIDADES TRANSFRONTERIZAS
+   * Identifica cuando un cliente peruano busca aprovechar leyes/oportunidades internacionales
+   */
+  detectCrossBorderOpportunity(userMessage) {
+    try {
+      const lowerMessage = userMessage.toLowerCase()
+      
+      // 🎯 PATRONES DE OPORTUNIDADES TRANSFRONTERIZAS MEJORADOS
+      const opportunityPatterns = {
+        // Leyes internacionales específicas - MEJORADO
+        internationalLaws: [
+          /beautiful.*tax.*bill/gi,
+          /one.*beautiful.*bill/gi,
+          /big.*beautiful.*bill/gi,
+          /tax.*bill.*2025/gi,
+          /ley.*estados.*unidos/gi,
+          /ley.*internacional/gi,
+          /ley.*usa/gi,
+          /legislaci[óo]n.*usa/gi,
+          /trump.*ley/gi,
+          /nueva.*ley.*2025/gi,
+          /reforma.*tributaria.*usa/gi,
+          /tax.*reform/gi
+        ],
+        
+        // Oportunidades de inversión internacional - MEJORADO
+        investmentOpportunities: [
+          /invertir.*estados.*unidos/gi,
+          /invertir.*usa/gi,
+          /invertir.*miami/gi,
+          /inversión.*internacional/gi,
+          /oportunidad.*internacional/gi,
+          /mercado.*extranjero/gi,
+          /negocio.*internacional/gi,
+          /oportunidades.*usa/gi,
+          /beneficios.*fiscales.*internacionales/gi,
+          /optimización.*fiscal.*internacional/gi
+        ],
+        
+        // Estructuras transfronterizas - MEJORADO
+        crossBorderStructures: [
+          /operar.*desde.*per[uú]/gi,
+          /desde.*lima.*estados.*unidos/gi,
+          /desde.*lima.*miami/gi,
+          /per[uú].*usa/gi,
+          /per[uú].*miami/gi,
+          /aprovechar.*desde.*per[uú]/gi,
+          /usar.*favor.*per[uú]/gi,
+          /operando.*desde.*lima/gi,
+          /estando.*en.*per[uú]/gi,
+          /desde.*per[uú].*operar/gi
+        ],
+        
+        // Optimización fiscal internacional - MEJORADO
+        internationalTaxOptimization: [
+          /beneficio.*fiscal.*internacional/gi,
+          /beneficios.*fiscales.*internacionales/gi,
+          /aprovechar.*ley.*extranjera/gi,
+          /optimizar.*impuestos.*internacional/gi,
+          /ventaja.*tributaria.*usa/gi,
+          /ventajas.*fiscales.*usa/gi,
+          /estrategias.*fiscales.*internacionales/gi
+        ],
+        
+        // NUEVO: Consultas específicas sobre leyes
+        specificLawQueries: [
+          /que.*sabes.*ley/gi,
+          /conoces.*ley/gi,
+          /información.*ley/gi,
+          /habla.*ley/gi,
+          /explica.*ley/gi,
+          /dime.*ley/gi
+        ]
+      }
+      
+      // 🔍 DETECTAR PAÍSES OBJETIVO - MEJORADO
+      const targetCountries = {
+        'usa': ['estados unidos', 'usa', 'miami', 'florida', 'delaware', 'wyoming', 'nevada', 'texas', 'california'],
+        'panama': ['panamá', 'panama'],
+        'uruguay': ['uruguay'],
+        'chile': ['chile'],
+        'spain': ['españa', 'madrid', 'barcelona'],
+        'uk': ['reino unido', 'londres', 'uk', 'inglaterra'],
+        'singapore': ['singapur', 'singapore'],
+        'dubai': ['dubai', 'emiratos'],
+        'mexico': ['méxico', 'mexico'],
+        'colombia': ['colombia', 'bogotá'],
+        'argentina': ['argentina', 'buenos aires']
+      }
+      
+      let detectedCountries = []
+      for (const [country, keywords] of Object.entries(targetCountries)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          detectedCountries.push(country)
+        }
+      }
+      
+      // 📊 CALCULAR PUNTUACIÓN DE CONFIANZA - MEJORADO
+      let confidence = 0
+      let detectedCategories = []
+      let keywords = []
+      
+      for (const [category, patterns] of Object.entries(opportunityPatterns)) {
+        for (const pattern of patterns) {
+          const matches = userMessage.match(pattern)
+          if (matches) {
+            // Puntuación diferenciada por categoría
+            let categoryBonus = 15 // Puntuación base
+            
+            if (category === 'internationalLaws') categoryBonus = 25 // Mayor peso para leyes
+            if (category === 'specificLawQueries') categoryBonus = 20 // Peso alto para consultas específicas
+            if (category === 'crossBorderStructures') categoryBonus = 20 // Peso alto para estructuras
+            
+            confidence += categoryBonus
+            detectedCategories.push(category)
+            keywords.push(...matches.map(m => m.toLowerCase()))
+          }
+        }
+      }
+      
+      // Bonificación por países detectados - MEJORADO
+      confidence += detectedCountries.length * 15 // Incrementado de 10 a 15
+      
+      // Bonificación especial para consultas que mencionan Perú + país extranjero - MEJORADO
+      if (lowerMessage.includes('perú') || lowerMessage.includes('peru')) {
+        if (detectedCountries.length > 0) {
+          confidence += 25 // Incrementado de 20 a 25
+        }
+      }
+      
+      // 🎯 DETECTAR INTENCIÓN DE APROVECHAMIENTO - MEJORADO
+      const leverageKeywords = [
+        'aprovechar', 'usar a favor', 'beneficio', 'ventaja', 'sacar provecho',
+        'utilizar', 'explotar', 'maximizar', 'optimizar', 'beneficiarme',
+        'como usar', 'como aplicar', 'como utilizar'
+      ]
+      const hasLeverageIntent = leverageKeywords.some(keyword => lowerMessage.includes(keyword))
+      
+      if (hasLeverageIntent) {
+        confidence += 20 // Incrementado de 15 a 20
+        detectedCategories.push('leverage_intent')
+      }
+      
+      // 🏆 BONIFICACIONES ESPECIALES
+      
+      // Bonificación para leyes específicas de Trump
+      if (lowerMessage.includes('beautiful') && (lowerMessage.includes('bill') || lowerMessage.includes('tax'))) {
+        confidence += 30 // Gran bonificación para "Beautiful Bill"
+        detectedCategories.push('trump_specific_law')
+      }
+      
+      // Bonificación para consultas sobre leyes + año actual
+      if (lowerMessage.includes('ley') && lowerMessage.includes('2025')) {
+        confidence += 25
+        detectedCategories.push('current_law_query')
+      }
+      
+      // Bonificación para inversiones específicas en ciudades
+      if ((lowerMessage.includes('invertir') || lowerMessage.includes('inversión')) && 
+          (lowerMessage.includes('miami') || lowerMessage.includes('nueva york') || lowerMessage.includes('los angeles'))) {
+        confidence += 25
+        detectedCategories.push('city_specific_investment')
+      }
+      
+      // Límite máximo de confianza
+      confidence = Math.min(confidence, 100)
+      
+      return {
+        hasOpportunity: confidence > 40,
+        confidence: confidence,
+        categories: [...new Set(detectedCategories)], // Eliminar duplicados
+        keywords: [...new Set(keywords)], // Eliminar duplicados
+        targetCountries: detectedCountries,
+        leverageIntent: hasLeverageIntent,
+        crossBorderContext: lowerMessage.includes('perú') || lowerMessage.includes('peru')
+      }
+      
+    } catch (error) {
+      logger.error('❌ Error detectando oportunidades transfronterizas:', error)
+      return {
+        hasOpportunity: false,
+        confidence: 0,
+        categories: [],
+        keywords: [],
+        targetCountries: [],
+        leverageIntent: false,
+        crossBorderContext: false
+      }
+    }
+  }
+
+  /**
+   * 🎯 GENERAR ESTRATEGIA TRANSFRONTERIZA ESPECÍFICA
+   * Crea instrucciones detalladas para aprovechar oportunidades internacionales desde Perú
+   */
+  generateCrossBorderStrategy(crossBorderAnalysis, userMessage) {
+    try {
+      const { categories, targetCountries, leverageIntent, keywords } = crossBorderAnalysis
+      
+      let strategy = `\n\n🚀 ESTRATEGIA TRANSFRONTERIZA PARA EMPRESARIO PERUANO:\n`
+      
+      // 🌍 CONTEXTO ESPECÍFICO DEL PAÍS OBJETIVO
+      if (targetCountries.length > 0) {
+        const primaryCountry = targetCountries[0]
+        strategy += `\n🎯 OPORTUNIDAD DETECTADA EN: ${primaryCountry.toUpperCase()}\n`
+        
+        switch (primaryCountry) {
+          case 'usa':
+            strategy += `\n📋 ESTRATEGIAS ESPECÍFICAS PARA USA DESDE PERÚ:\n`
+            strategy += `- 🏢 Crear LLC en Delaware/Wyoming/Florida como vehículo de inversión\n`
+            strategy += `- 💰 Aprovechar tratados de doble tributación Perú-USA\n`
+            strategy += `- 🏦 Abrir cuentas bancarias empresariales en bancos estadounidenses\n`
+            strategy += `- 📊 Estructurar holding peruana + subsidiaria americana\n`
+            strategy += `- 🛡️ Proteger activos mediante estructuras Delaware\n`
+            break
+            
+          case 'panama':
+            strategy += `\n📋 ESTRATEGIAS ESPECÍFICAS PARA PANAMÁ DESDE PERÚ:\n`
+            strategy += `- 🏢 Aprovechar Ley de Sociedades Anónimas de Panamá\n`
+            strategy += `- 💰 Utilizar régimen fiscal territorial panameño\n`
+            strategy += `- 🏦 Estructuras de fondos de inversión panameños\n`
+            strategy += `- 📊 Holding panameña para operaciones latinoamericanas\n`
+            break
+            
+          default:
+            strategy += `\n📋 ESTRATEGIAS GENERALES PARA ${primaryCountry.toUpperCase()}:\n`
+            strategy += `- 🔍 Análisis de tratados de doble tributación\n`
+            strategy += `- 🏢 Estructuras corporativas optimizadas\n`
+            strategy += `- 💰 Aprovechamiento de incentivos fiscales locales\n`
+        }
+      }
+      
+      // 🎯 ESTRATEGIAS SEGÚN CATEGORÍAS DETECTADAS
+      if (categories.includes('internationalLaws')) {
+        strategy += `\n💡 APROVECHAMIENTO DE LEYES INTERNACIONALES:\n`
+        strategy += `- 📜 Analizar aplicabilidad directa en territorio peruano\n`
+        strategy += `- 🌐 Estructurar operaciones para beneficiarse indirectamente\n`
+        strategy += `- 🏢 Crear presencia comercial en jurisdicción objetivo\n`
+        strategy += `- 💼 Asociarse con partners locales para acceso directo\n`
+      }
+      
+      if (categories.includes('investmentOpportunities')) {
+        strategy += `\n💰 ESTRATEGIAS DE INVERSIÓN TRANSFRONTERIZA:\n`
+        strategy += `- 🎯 Vehículos de inversión óptimos (LLC, Corp, LP)\n`
+        strategy += `- 📊 Estructuras de repatriación de utilidades\n`
+        strategy += `- 🛡️ Protección cambiaria y cobertura de riesgos\n`
+        strategy += `- 💸 Optimización fiscal en origen y destino\n`
+      }
+      
+      if (categories.includes('crossBorderStructures')) {
+        strategy += `\n🏗️ ESTRUCTURAS OPERATIVAS TRANSFRONTERIZAS:\n`
+        strategy += `- 🏢 Holding peruana + subsidiarias extranjeras\n`
+        strategy += `- 📋 Contratos de prestación de servicios internacionales\n`
+        strategy += `- 🌐 Licenciamiento de tecnología/marcas\n`
+        strategy += `- 💼 Joint ventures estratégicos\n`
+      }
+      
+      if (leverageIntent) {
+        strategy += `\n🚀 MAXIMIZACIÓN DE BENEFICIOS DESDE PERÚ:\n`
+        strategy += `- ⚡ Implementación inmediata de oportunidades detectadas\n`
+        strategy += `- 📈 Escalamiento progresivo de operaciones\n`
+        strategy += `- 🎯 Diversificación de riesgos geográficos\n`
+        strategy += `- 💎 Aprovechamiento de arbitraje regulatorio\n`
+      }
+      
+      // 🚨 CONSIDERACIONES CRÍTICAS
+      strategy += `\n⚠️ CONSIDERACIONES CRÍTICAS PARA EMPRESARIO PERUANO:\n`
+      strategy += `- 📋 Cumplimiento con SUNAT y regulación cambiaria peruana\n`
+      strategy += `- 🏦 Reporte a UIF-Perú para operaciones >USD 10,000\n`
+      strategy += `- 📊 Planificación de repatriación de utilidades\n`
+      strategy += `- ⚖️ Asesoría legal especializada en ambas jurisdicciones\n`
+      
+      // 🎯 ACCIONES INMEDIATAS RECOMENDADAS
+      strategy += `\n🎯 ACCIONES INMEDIATAS RECOMENDADAS:\n`
+      strategy += `1. 🔍 Due diligence detallado de la oportunidad específica\n`
+      strategy += `2. 📋 Estructuración legal y fiscal óptima\n`
+      strategy += `3. 🏦 Apertura de cuentas y establecimiento operativo\n`
+      strategy += `4. 🚀 Implementación piloto con capital limitado\n`
+      strategy += `5. 📈 Escalamiento basado en resultados\n`
+      
+      strategy += `\n💡 IMPORTANTE: Todas las estrategias deben ser implementadas con asesoría legal y fiscal especializada para garantizar cumplimiento normativo completo.\n`
+      
+      return strategy
+      
+    } catch (error) {
+      logger.error('❌ Error generando estrategia transfronteriza:', error)
+      return '\n\n🚀 Se detectó una oportunidad transfronteriza. Proporcionaré estrategias específicas para aprovecharla desde Perú.\n'
     }
   }
 }
