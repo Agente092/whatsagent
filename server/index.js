@@ -2327,14 +2327,9 @@ Para acceder a nuestro servicio de asesoría empresarial, necesitas ser registra
                 phone: from,
                 operation: 'emergency_memory_save'
               })
-              // Enviar notificación de emergencia al cliente
-              try {
-                await whatsappService.sendMessage(from, 
-                  '⚠️ Disculpa, hubo un problema técnico guardando nuestra conversación. Por favor, repite tu última consulta.'
-                )
-              } catch (notificationError) {
-                logger.error('❌ No se pudo notificar al cliente del error:', notificationError)
-              }
+              // 🙅‍♂️ NO ENVIAR NOTIFICACIÓN DE ERROR AL USUARIO - MALA UX
+              // Solo logear el error crítico internamente
+              logger.error('🆘 Error crítico no notificado al usuario por UX')
             }
           }
         }
@@ -2390,15 +2385,14 @@ Para acceder a nuestro servicio de asesoría empresarial, necesitas ser registra
       isTimeout: error.message.includes('timeout')
     })
     
-    // Si es timeout, enviar mensaje de estado al usuario
+    // 🙅‍♂️ NO ENVIAR MENSAJES DE ERROR AL USUARIO - MALA UX
+    // Solo logear el error internamente
+    logger.warn(`⚠️ Error procesando mensaje de ${message?.from}: ${error.message}`)
+    
+    // Si es timeout, usar sistema de reintento inteligente en lugar de notificar al usuario
     if (error.message.includes('timeout') && message?.from) {
-      try {
-        await whatsappService.sendMessage(message.from, 
-          '⚠️ Disculpa, estoy procesando tu consulta. Puede tomar unos momentos adicionales. Por favor espera...'
-        )
-      } catch (sendError) {
-        logger.error('Error sending timeout message', sendError)
-      }
+      logger.info('🔄 Timeout detectado - implementar lógica de reintento en el futuro')
+      // TODO: Implementar lógica de reintento inteligente
     }
   }
 })
