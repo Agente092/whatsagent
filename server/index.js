@@ -1811,7 +1811,7 @@ cron.schedule('0 * * * *', async () => {
 // 🧠 Handle incoming WhatsApp messages with intelligent processing
 whatsappService.on('message', async (message) => {
   const startTime = Date.now()
-  const processingTimeout = 30000 // 30 segundos timeout
+  const processingTimeout = 20000 // 🕰️ REDUCIDO: 20 segundos timeout (antes 30s)
   
   try {
     // Crear una promesa con timeout
@@ -2043,6 +2043,7 @@ Para acceder a nuestro servicio de asesoría empresarial, necesitas ser registra
               // 📝 INTENTAR GUARDAR EN PRISMA SI ES POSIBLE
               await prisma.conversation.create({
                 data: {
+                  clientId: client.id, // ✅ AGREGAR clientId REQUERIDO
                   phone: from,
                   message: body,
                   response: elegantWelcome,
