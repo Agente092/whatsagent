@@ -2,12 +2,16 @@ const https = require('https')
 const http = require('http')
 const { URL } = require('url')
 const logger = require('./logger')
+const GoogleSearchPool = require('./googleSearchPool')
 
 class InternetSearchService {
   constructor() {
     this.cache = new Map()
     this.cacheExpiry = 30 * 60 * 1000 // 30 minutos
     this.maxResults = 5
+    
+    // 🌟 INICIALIZAR POOL DE GOOGLE SEARCH APIs
+    this.googleSearchPool = new GoogleSearchPool()
     
     // Estadísticas del servicio
     this.stats = {
@@ -55,22 +59,20 @@ class InternetSearchService {
   }
 
   /**
-   * Realizar búsqueda web REAL usando múltiples estrategias
+   * Realizar búsqueda web REAL usando pool de APIs
    */
   async performRealWebSearch(query) {
     try {
-      logger.info(`🌐 Ejecutando búsqueda WEB REAL para: "${query}"`)
+      logger.info(`🌍 Ejecutando búsqueda WEB REAL para: "${query}"`)
       
-      // Estrategia 1: Google Custom Search API (100 búsquedas gratis por día)
-      if (process.env.GOOGLE_CSE_API_KEY && process.env.GOOGLE_CSE_ID) {
-        logger.info('🔍 Intentando Google Custom Search API...')
-        const googleResults = await this.searchWithGoogleCSE(query)
-        if (googleResults) {
-          return googleResults
-        }
+      // Estrategia 1: Pool de Google Custom Search APIs (500 búsquedas gratis por día)
+      logger.info('🔍 Intentando Google Custom Search Pool...')
+      const googleResults = await this.googleSearchPool.search(query)
+      if (googleResults) {
+        return googleResults
       }
       
-      // Estrategia 2: Bing Search API (1000 búsquedas gratis por mes)
+      // Estrategia 2: Bing Search API (1000 búsquedas gratis por mes) - SOLO SI ESTÁ CONFIGURADO
       if (process.env.BING_SEARCH_API_KEY) {
         logger.info('🔍 Intentando Bing Search API...')
         const bingResults = await this.searchWithBingAPI(query)
@@ -204,7 +206,7 @@ class InternetSearchService {
             'Connection': 'keep-alive',
             ...customOptions.headers
           },
-          timeout: 15000
+          timeout: 10000
         }
         
         const req = client.request(options, (res) => {
@@ -468,15 +470,33 @@ Recomiendo intentar la búsqueda nuevamente más tarde o consultar fuentes espec
   }
 
   /**
-   * Obtener estadísticas del servicio
+   * Obtener estadísticas del servicio (incluyendo pool)
    */
   getStats() {
+    const poolStats = this.googleSearchPool.getPoolStats()
+    
     return {
       ...this.stats,
       cacheSize: this.cache.size,
       cacheExpiryMinutes: this.cacheExpiry / (60 * 1000),
-      maxResults: this.maxResults
+      maxResults: this.maxResults,
+      googleSearchPool: poolStats
     }
+  }
+
+  /**
+   * 🔄 Resetear pool de Google Search APIs
+   */
+  resetGooglePool() {
+    this.googleSearchPool.resetPool()
+    logger.info('🔄 Pool de Google Search reseteado')
+  }
+
+  /**
+   * 📊 Obtener estadísticas detalladas del pool
+   */
+  getPoolDetails() {
+    return this.googleSearchPool.getPoolStats()
   }
 }
 
