@@ -496,35 +496,41 @@ Estoy experimentando dificultades técnicas temporales.
   }
 
   /**
-   * 🔍 VALIDACIÓN FINAL - ASEGURAR CUMPLIMIENTO ESTÉTICO
-   * Esta función verifica que se cumplan TODAS las reglas estéticas
+   * 🔍 VALIDACIÓN FINAL - CUMPLIMIENTO ESTÉTICO COMPLETO
    */
   ensureAestheticCompliance(text) {
     let compliant = text
     
-    // ✅ VERIFICACIÓN 1: Separación adecuada entre secciones
+    // ✅ ALINEACIÓN PERFECTA: Solo sub-elementos pueden tener indentación
+    const lines = compliant.split('\n')
+    const alignedLines = lines.map(line => {
+      if (line.match(/^  - /)) return line // Mantener sub-elementos
+      return line.replace(/^[ \t]+/, '') // Todo lo demás a la izquierda
+    })
+    compliant = alignedLines.join('\n')
+    
+    // ✅ SEPARACIÓN ENTRE SECCIONES
     compliant = compliant.replace(/(\*\*\d+\.[^:]+:\*\*)([^\n])/g, '$1\n\n$2')
+    compliant = compliant.replace(/(\*\*[a-z]\)\*\*[^\n]+)([^\n])/g, '$1\n\n$2')
     
-    // ✅ VERIFICACIÓN 2: Espaciado consistente en listas
+    // ✅ ESPACIADO EN LISTAS
     compliant = compliant.replace(/^•([^\s])/gm, '• $1')
+    compliant = compliant.replace(/^  -([^\s])/gm, '  - $1')
     
-    // ✅ VERIFICACIÓN 3: Eliminar espacios al inicio de líneas
-    compliant = compliant.replace(/^[ \t]+/gm, '')
+    // ✅ ESPACIADO DESPUÉS DE NEGRITAS
+    compliant = compliant.replace(/\*\*([^*]+)\*\*([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '**$1** $2')
     
-    // ✅ VERIFICACIÓN 4: Máximo 2 saltos de línea consecutivos
+    // ✅ MÁXIMO 2 SALTOS DE LÍNEA
     compliant = compliant.replace(/\n{3,}/g, '\n\n')
     
-    // ✅ VERIFICACIÓN 5: Eliminar espacios al final de líneas
+    // ✅ ELIMINAR ESPACIOS AL FINAL
     compliant = compliant.replace(/[ \t]+$/gm, '')
     
-    // ✅ VERIFICACIÓN 6: Asegurar espacios después de emojis en cualquier contexto
-    compliant = compliant.replace(/([🌟🎯📊💼🏢🌍💰📈🔍✅❌⚠️💡📝🚀🎉])([a-zA-Z0-9ÁÉÍÓÚáéíóúüñ])/g, '$1 $2')
+    // ✅ ESPACIOS DESPUÉS DE EMOJIS
+    compliant = compliant.replace(/([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌🚨🏆👋🔄😊🤝🌟🎪💼💸📈🎉])([a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ])/g, '$1 $2')
     
-    // ✅ VERIFICACIÓN 7: Separación visual entre diferentes tipos de contenido
-    compliant = compliant.replace(/(\*\*[^*]+:\*\*)\n(•)/g, '$1\n\n$2')
-    
-    // ✅ VERIFICACIÓN 8: Corregir cualquier emoji pegado que se haya escapado
-    compliant = compliant.replace(/([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌🚨🏆👋🔄😊🤝🌟💼📈🎉])/g, '$1 $2')
+    // ✅ CORRECCIÓN FINAL DE EMOJIS PEGADOS
+    compliant = compliant.replace(/([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌🚨🏆👋🔄😊🤝🌟🎪💼💸📈🎉])/g, '$1 $2')
     
     return compliant.trim()
   }
