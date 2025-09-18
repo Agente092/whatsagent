@@ -509,6 +509,14 @@ RESPUESTA TÉCNICA COMPLETA:`
 
     let prompt = `🧠 SISTEMA DE ASESORÍA EMPRESARIAL INTELIGENTE
 
+${realTimeInfo ? `
+🚨🚨 ALERTA CRÍTICA: INFORMACIÓN DE BÚSQUEDA WEB RECIBIDA 🚨🚨
+⚡ DEBES USAR LA INFORMACIÓN DE BÚSQUEDA COMO FUENTE PRINCIPAL
+⚡ NO CONTRADIGAS los resultados de búsqueda con conocimiento general
+⚡ SI la búsqueda menciona leyes/datos específicos, ACEPTA y ÚSALOS
+⚡ CITA EXPLÍCITAMENTE: "Según la información actualizada encontrada..."
+` : ''}
+
 Eres un asesor empresarial especializado de alto nivel con capacidades de razonamiento humano y personalidad adaptativa.
 
 📊 DATOS DEL CLIENTE ACTUAL:
@@ -563,6 +571,19 @@ CONTEXTO DE CONOCIMIENTO:
 ${this.knowledgeBase ? this.knowledgeBase.getFullContent() : knowledgeContext}
 
 ${realTimeInfo ? `🌐 INFORMACIÓN ADICIONAL EN TIEMPO REAL:${realTimeInfo}` : ''}
+
+🚨 INSTRUCCIONES CRÍTICAS PARA USO DE INFORMACIÓN DE BÚSQUEDA WEB:
+${realTimeInfo ? `
+⚡ ATENCIÓN: HAS RECIBIDO INFORMACIÓN ACTUALIZADA DE BÚSQUEDA WEB
+- LA INFORMACIÓN ARRIBA EN "INFORMACIÓN EN TIEMPO REAL" ES ACTUAL Y VERIFICADA
+- DEBES USARLA COMO FUENTE PRINCIPAL para responder la consulta específica
+- NO CONTRADICAS la información de búsqueda con tu conocimiento general
+- SI la búsqueda contiene datos específicos sobre la ley/tema consultado, ÚSALOS
+- EXTRAE Y MENCIONA: nombres específicos, fechas, países, cifras encontradas
+- CITA EXPLÍCITAMENTE: "Según la información actualizada encontrada..."
+- GENERA PREGUNTAS DE SEGUIMIENTO basadas en los resultados específicos
+- NO DIGAS que "no existe" si la búsqueda muestra lo contrario
+` : ''}
 
 ${expansionInstructions ? `${expansionInstructions}` : ''}
 
@@ -1451,7 +1472,7 @@ IMPORTANTE: Esta respuesta debe ser ESPECÍFICA para empresarios peruanos y incl
       'dónde es más conveniente', 'donde es mas conveniente',
       'qué jurisdicciones', 'que jurisdicciones', 'lista de países',
       
-      // Términos en inglés (importante para leyes internacionales)
+      // 🌍 TÉRMINOS EN INGLÉS - ESPECIAL ATENCIÓN PARA LEYES INTERNACIONALES
       'current', 'recent', 'today', 'now', 'latest', 'new', 'news',
       'law', 'bill', 'act', 'tax bill', 'beautiful bill', 'regulation',
       'rate', 'percentage', 'interest', 'inflation', 'exchange rate',
@@ -1459,9 +1480,16 @@ IMPORTANTE: Esta respuesta debe ser ESPECÍFICA para empresarios peruanos y incl
       'which countries', 'what countries', 'best countries for',
       'offshore jurisdictions', 'tax havens', 'double taxation',
       
-      // Casos específicos importantes
-      'beautiful tax bill', 'one big beautiful', 'trump tax',
-      'covid', 'pandemic', '2024', '2025', 'biden', 'trump'
+      // 🚨 CASOS ESPECÍFICOS IMPORTANTES - NOMBRES PROPIOS Y LEYES
+      'beautiful tax bill', 'one big beautiful', 'one beautiful bill', 
+      'trump tax', 'biden tax', 'harris tax', 'covid', 'pandemic', 
+      '2024', '2025', 'biden', 'trump', 'harris',
+      
+      // 🔥 DETECCIÓN MEJORADA PARA TÉRMINOS MIXTOS ESPAÑOL-INGLÉS
+      'beautiful', 'bill', 'tax reform', 'reform', 'big beautiful',
+      'propuesta', 'propone', 'salio', 'salió', 'fue propuesta',
+      'conocimiento sobre', 'tienes conocimiento', 'que sabes de',
+      'información sobre', 'hablame sobre', 'díme sobre'
     ]
     
     // Verificar si alguna palabra clave está en el mensaje
