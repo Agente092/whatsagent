@@ -8,7 +8,10 @@ class MessageFormatter {
   formatResponse(text, context = {}) {
     let formatted = this.cleanText(text)
     
-    // Agregar emojis contextuales
+    // 🔧 APLICAR REGLAS ESTRICTAS DE FORMATEO PROFESIONAL
+    formatted = this.applyStrictFormattingRules(formatted)
+    
+    // Agregar emojis contextuales con espaciado correcto
     formatted = this.addContextualEmojis(formatted, context)
     
     // Aplicar formato profesional
@@ -19,8 +22,11 @@ class MessageFormatter {
       formatted += this.addPersonalizedQuestions(formatted, context.personalizedQuestions)
     }
     
-    // 🔧 NORMALIZAR PARA WHATSAPP (SOLUCIÓN AL PROBLEMA DE ALINEACIÓN)
+    // 🔧 NORMALIZAR PARA WHATSAPP (SOLUCIÓN DEFINITIVA AL PROBLEMA DE ALINEACIÓN)
     formatted = this.normalizeForWhatsApp(formatted)
+    
+    // 🔍 VALIDACIÓN FINAL - ASEGURAR CUMPLIMIENTO DE REGLAS ESTÉTICAS
+    formatted = this.ensureAestheticCompliance(formatted)
     
     // Dividir en mensajes si es muy largo
     return this.splitIntoMessages(formatted)
@@ -41,7 +47,7 @@ class MessageFormatter {
     return cleaned
   }
 
-  // Agregar emojis contextuales
+  // Agregar emojis contextuales con espaciado correcto
   addContextualEmojis(text, context) {
     const { currentTopic, stage, interests } = context
     
@@ -65,25 +71,28 @@ class MessageFormatter {
 
     let formatted = text
 
-    // Agregar emoji de tema si corresponde
+    // 🔧 CORRECCIÓN CRÍTICA: ESPACIADO ADECUADO PARA EMOJIS
+    // Agregar emoji de tema con espaciado correcto
     if (currentTopic && topicEmojis[currentTopic]) {
-      if (!formatted.includes(topicEmojis[currentTopic])) {
-        formatted = `${topicEmojis[currentTopic]} ${formatted}`
+      const emoji = topicEmojis[currentTopic]
+      if (!formatted.includes(emoji)) {
+        formatted = `${emoji} ${formatted}`
       }
     }
 
-    // 🔧 CORREGIR INCONSISTENCIA DE NEGRITAS - LIMPIAR ESPACIOS ANTES DE PROCESAR
-    // Primero limpiar espacios antes de asteriscos para uniformidad
+    // 🔧 PROCESAR NEGRITAS SIN ALTERAR EL CONTENIDO ORIGINAL
+    // Solo limpiar espacios problemáticos, no cambiar la estructura
     formatted = formatted.replace(/^\s+\*\*([^*]+)\*\*/gm, '**$1**')
     
-    // 🔢 CORREGIR INCONSISTENCIA DE NÚMEROS - LISTAS NUMERADAS EN NEGRITAS
-    // Limpiar espacios antes de números y ponerlos en negritas
-    formatted = formatted.replace(/^\s*(\d+)\./gm, '**$1.**')
+    // 🔧 ASEGURAR ESPACIADO CORRECTO DESPUÉS DE EMOJIS Y NEGRITAS
+    // Separar emojis que estén pegados al texto
+    formatted = formatted.replace(/([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌])([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '$1 $2')
     
-    // Mejorar puntos clave con emojis (ahora todos uniformes)
-    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '• **$1**')
-    formatted = formatted.replace(/^\*\*(\d+)\.\*\*/gm, '📌 **$1.**')
-    formatted = formatted.replace(/^([A-Z]\.|•)/gm, '▫️ $1')
+    // Separar texto que esté pegado después de emojis
+    formatted = formatted.replace(/([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌])/g, '$1 $2')
+    
+    // 🔧 ESPACIADO CORRECTO PARA NEGRITAS SEGUIDAS DE TEXTO
+    formatted = formatted.replace(/\*\*([^*]+)\*\*([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '**$1** $2')
     
     return formatted
   }
@@ -92,42 +101,35 @@ class MessageFormatter {
   applyProfessionalFormatting(text) {
     let formatted = text
 
-    // 🔧 NORMALIZAR FORMATO PARA WHATSAPP
-    // Limpiar espacios inconsistentes antes de negritas
-    formatted = formatted.replace(/\s+\*(.*?)\*/g, '\n*$1*')
+    // 🔧 PRE-PROCESAMIENTO: CORREGIR PROBLEMAS BÁSICOS DE ESPACIADO
+    // Separar emojis que están pegados al texto
+    formatted = formatted.replace(/([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•])/g, '$1 $2')
+    formatted = formatted.replace(/([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•])([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '$1 $2')
     
-    // Asegurar salto de línea antes de títulos en negrita
-    formatted = formatted.replace(/([^\n])\*(\w[^*]+)\*/g, '$1\n\n*$2*')
+    // 🎯 NORMALIZAR TÍTULOS Y SUBTÍTULOS
+    // Convertir títulos simples a formato con negritas
+    formatted = formatted.replace(/^([A-ZÁÉÍÓÚ][^:\n]{8,60}):$/gm, '\n**$1:**\n')
     
-    // Normalizar bullets y listas para consistencia
-    formatted = formatted.replace(/^\s*[•▫️✦]\s*/gm, '• ')
-    formatted = formatted.replace(/^\s*-\s*/gm, '• ')
+    // 🔹 NORMALIZAR VIÑETAS Y LISTAS
+    formatted = formatted.replace(/^\s*[•▫️✦-]\s*/gm, '• ')
     
-    // Mejorar títulos y secciones con formato consistente
-    formatted = formatted.replace(/^([A-ZÁÉÍÓÚ][^:\n]{10,50}):$/gm, '\n*$1:*\n')
+    // 📝 MEJORAR PALABRAS CLAVE CON EMOJIS
+    formatted = formatted.replace(/\b(ejemplo|ejemplos):/gi, '\n💡 **Ejemplo:**\n')
+    formatted = formatted.replace(/\b(importante|crítico|clave):/gi, '\n⚠️ **Importante:**\n')
+    formatted = formatted.replace(/\b(nota|observación):/gi, '\n📝 **Nota:**\n')
+    formatted = formatted.replace(/\b(riesgo|riesgos):/gi, '\n🚨 **Riesgos:**\n')
+    formatted = formatted.replace(/\b(beneficio|beneficios|ventaja|ventajas):/gi, '\n✅ **Beneficios:**\n')
+    formatted = formatted.replace(/\b(conclusión|resumen):/gi, '\n🎯 **Conclusión:**\n')
+    formatted = formatted.replace(/\b(recomendación|recomendaciones):/gi, '\n💡 **Recomendaciones:**\n')
     
-    // Asegurar espaciado correcto después de títulos en negrita
-    formatted = formatted.replace(/\*(.*?)\*:\s*\n/g, '*$1:*\n\n')
+    // 🔧 ESPACIADO CONSISTENTE PARA NEGRITAS
+    // Asegurar espacio después de negritas cuando van seguidas de texto
+    formatted = formatted.replace(/\*\*([^*]+)\*\*([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '**$1** $2')
     
-    // Normalizar opciones (Opción A, B, C, etc.)
-    formatted = formatted.replace(/^\s*(Opción\s+[A-Z][^:]*):?/gm, '\n*$1:*')
-    
-    // Mejorar ejemplos con formato consistente
-    formatted = formatted.replace(/ejemplo:/gi, '\n💡 *Ejemplo:*\n')
-    formatted = formatted.replace(/importante:/gi, '\n⚠️ *Importante:*\n')
-    formatted = formatted.replace(/nota:/gi, '\n📝 *Nota:*\n')
-    
-    // Mejorar conclusiones
-    formatted = formatted.replace(/en resumen/gi, '\n📋 *En resumen:*\n')
-    formatted = formatted.replace(/conclusión/gi, '\n🎯 *Conclusión:*\n')
-    
-    // 🔧 LIMPIAR ESPACIOS MÚLTIPLES Y SALTOS DE LÍNEA EXCESIVOS
+    // 🔧 LIMPIEZA FINAL
     formatted = formatted.replace(/\n{3,}/g, '\n\n')
-    formatted = formatted.replace(/\s+\n/g, '\n')
-    formatted = formatted.replace(/\n\s+/g, '\n')
-    
-    // Asegurar que las negritas estén alineadas correctamente
-    formatted = formatted.replace(/^\s+\*/gm, '*')
+    formatted = formatted.replace(/^\s+/gm, '')
+    formatted = formatted.replace(/\s+$/gm, '')
     
     return formatted.trim()
   }
@@ -215,107 +217,131 @@ class MessageFormatter {
   }
 
   /**
-   * 🚨 NORMALIZAR TEXTO PARA WHATSAPP - CORRECCIÓN DEFINITIVA V2
-   * Soluciona TODOS los problemas específicos reportados:
-   * - Títulos sin numeración automática
-   * - Subtítulos amontonados sin viñetas
-   * - Numeración manual existente desalineada
-   * - Listas con guiones mal alineadas
-   * - Falta de saltos de línea y separación
-   * - Problemas de alineación
+   * 🔧 NORMALIZAR TEXTO PARA WHATSAPP - CORRECCIÓN DEFINITIVA V3
+   * SOLUCIONA TODOS LOS PROBLEMAS CRÍTICOS REPORTADOS:
+   * ✅ Emojis pegados al texto sin espacio
+   * ✅ Texto amontonado sin saltos de línea
+   * ✅ Viñetas inconsistentes y mal alineadas
+   * ✅ Títulos y subtítulos sin separación visual
+   * ✅ Secciones sin espaciado profesional
+   * ✅ Formateo que no se ve estético
    */
   normalizeForWhatsApp(text) {
     let normalized = text.trim()
     
-    // 🛠️ PASO 1: Limpiar texto de entrada
+    // 🛠️ PASO 1: LIMPIEZA INICIAL PROFUNDA
     normalized = normalized.replace(/\r\n/g, '\n')
-    normalized = normalized.replace(/\t/g, ' ')
+    normalized = normalized.replace(/\t/g, '  ')
     
-    // 🎯 PASO 2: PROCESAR LÍNEA POR LÍNEA
+    // 🔧 CORRECCIÓN CRÍTICA 1: SEPARAR EMOJIS PEGADOS AL TEXTO
+    // Antes: "estructura💱" → Después: "estructura 💱"
+    normalized = normalized.replace(/([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•])/g, '$1 $2')
+    
+    // 🔧 CORRECCIÓN CRÍTICA 2: SEPARAR TEXTO PEGADO DESPUÉS DE EMOJIS
+    // Antes: "💱transferencia" → Después: "💱 transferencia"
+    normalized = normalized.replace(/([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•])([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '$1 $2')
+    
+    // 🔧 CORRECCIÓN CRÍTICA 3: CORREGIR ESPACIADO EN NEGRITAS
+    // Antes: "**texto**palabra" → Después: "**texto** palabra"
+    normalized = normalized.replace(/\*\*([^*]+)\*\*([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '**$1** $2')
+    
+    // 🎯 PASO 2: PROCESAR LÍNEA POR LÍNEA CON REGLAS ESTRICTAS
     const lines = normalized.split('\n')
     const processedLines = []
-    let titleCounter = 1
     
     for (let i = 0; i < lines.length; i++) {
-      let line = lines[i]
+      let line = lines[i].trim()
       
-      // 🧹 LIMPIAR ESPACIOS AL INICIO Y FINAL
-      line = line.trim()
-      
+      // 📝 LÍNEA VACÍA - preservar con control
       if (line.length === 0) {
-        // Línea vacía - preservar
-        processedLines.push('')
-        continue
-      }
-      
-      // 🔢 DETECTAR NUMERACIÓN MANUAL EXISTENTE (1., 2., 3., etc.)
-      const manualNumberMatch = line.match(/^(\d+)\.\s+(.+)$/)
-      if (manualNumberMatch) {
-        const number = manualNumberMatch[1]
-        const content = manualNumberMatch[2].trim()
-        
-        // CORRECCIÓN CRÍTICA: Formato consistente para TODOS los títulos numerados
-        if (content.endsWith(':')) {
-          const cleanTitle = content.replace(':', '').trim()
-          processedLines.push(`**${number}. ${cleanTitle}:**`)
-        } else {
-          // Agregar ":" si no lo tiene para mantener formato consistente
-          processedLines.push(`**${number}. ${content}:**`)
-        }
-        processedLines.push('') // Salto después del título
-        continue
-      }
-      
-      // 🔹 DETECTAR LISTAS CON GUIONES (- item, - item)
-      const dashListMatch = line.match(/^-\s*(.+)$/)
-      if (dashListMatch) {
-        const content = dashListMatch[1].trim()
-        
-        // Si termina en ":" es un subtítulo, sino es contenido
-        if (content.endsWith(':')) {
-          const cleanSubtitle = content.replace(':', '').trim()
-          processedLines.push('')
-          processedLines.push(`• **${cleanSubtitle}:**`)
-          processedLines.push('')
-        } else {
-          processedLines.push(`• ${content}`)
-        }
-        continue
-      }
-      
-      // 🎯 DETECTAR TÍTULOS PRINCIPALES (mayúsculas largas con ":")
-      const isTitlePattern = /^[A-ZÁÉÍÓÚÄËÏÖÜ][A-ZÁÉÍÓÚÄËÏÖÜ\s]{10,}:\s*$/.test(line)
-      if (isTitlePattern) {
-        const cleanTitle = line.replace(':', '').trim()
-        processedLines.push(`**${titleCounter}. ${cleanTitle}:**`)
-        processedLines.push('')
-        titleCounter++
-        continue
-      }
-      
-      // 🔹 DETECTAR SUBTÍTULOS SIMPLES (terminan en ":")
-      if (line.endsWith(':') && line.length > 3 && line.length < 50) {
-        const cleanSubtitle = line.replace(':', '').trim()
+        // Solo agregar línea vacía si la anterior no era vacía
         if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
           processedLines.push('')
         }
-        processedLines.push(`• **${cleanSubtitle}:**`)
-        processedLines.push('')
         continue
       }
       
-      // 📝 LÍNEA NORMAL - preservar tal como está
+      // 🔢 TÍTULOS NUMERADOS (1., 2., 3., etc.)
+      const numberedTitleMatch = line.match(/^(\d+)\.\s*(.+)$/)
+      if (numberedTitleMatch) {
+        const number = numberedTitleMatch[1]
+        const title = numberedTitleMatch[2].trim().replace(':', '')
+        
+        // Asegurar separación antes del título
+        if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
+          processedLines.push('')
+        }
+        
+        processedLines.push(`**${number}. ${title}:**`)
+        processedLines.push('') // Separación después del título
+        continue
+      }
+      
+      // 🔹 VIÑETAS Y LISTAS (-, •, *, etc.)
+      const bulletMatch = line.match(/^[-•*]\s*(.+)$/)
+      if (bulletMatch) {
+        const content = bulletMatch[1].trim()
+        processedLines.push(`• ${content}`)
+        continue
+      }
+      
+      // 🎯 SUBTÍTULOS CON NEGRITAS (**texto:**)
+      const boldSubtitleMatch = line.match(/^\*\*([^*]+):\*\*\s*(.*)$/)
+      if (boldSubtitleMatch) {
+        const subtitle = boldSubtitleMatch[1].trim()
+        const content = boldSubtitleMatch[2].trim()
+        
+        // Separación antes del subtítulo
+        if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
+          processedLines.push('')
+        }
+        
+        processedLines.push(`**${subtitle}:**`)
+        
+        if (content) {
+          processedLines.push('')
+          processedLines.push(content)
+        }
+        
+        processedLines.push('') // Separación después
+        continue
+      }
+      
+      // 🏷️ TÍTULOS SIMPLES (terminan en ":")
+      if (line.endsWith(':') && line.length > 3 && line.length < 80 && !line.includes('**')) {
+        const title = line.replace(':', '').trim()
+        
+        // Separación antes del título
+        if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
+          processedLines.push('')
+        }
+        
+        processedLines.push(`**${title}:**`)
+        processedLines.push('') // Separación después
+        continue
+      }
+      
+      // 📝 LÍNEA NORMAL - preservar con espaciado mejorado
       processedLines.push(line)
     }
     
-    // 🧹 PASO 3: LIMPIEZA FINAL
+    // 🧹 PASO 3: LIMPIEZA FINAL Y APLICACIÓN DE REGLAS ESTÉTICAS
     let result = processedLines.join('\n')
     
-    // Limpiar saltos de línea excesivos
+    // 🔧 REGLA ESTÉTICA 1: Máximo 2 saltos de línea consecutivos
     result = result.replace(/\n{3,}/g, '\n\n')
     
-    // Asegurar alineación izquierda (eliminar espacios al inicio)
+    // 🔧 REGLA ESTÉTICA 2: Asegurar espacios después de emojis en cualquier contexto
+    result = result.replace(/([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•])([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])/g, '$1 $2')
+    
+    // 🔧 REGLA ESTÉTICA 3: Separación visual entre secciones principales
+    result = result.replace(/(\*\*\d+\. [^*]+:\*\*)\n([^\n])/g, '$1\n\n$2')
+    
+    // 🔧 REGLA ESTÉTICA 4: Eliminar espacios al inicio de líneas
     result = result.replace(/^\s+/gm, '')
+    
+    // 🔧 REGLA ESTÉTICA 5: Espaciado consistente en viñetas
+    result = result.replace(/^•([^ ])/gm, '• $1')
     
     return result.trim()
   }
@@ -441,6 +467,66 @@ Estoy experimentando dificultades técnicas temporales.
 • O contacta directamente con tu asesor
 
 🤝 Estoy aquí para ayudarte en cuanto se resuelva.`
+  }
+
+  /**
+   * 🛡️ APLICAR REGLAS ESTRICTAS DE FORMATEO PROFESIONAL
+   * REGLAS QUE EL AGENTE DEBE CUMPLIR OBLIGATORIAMENTE:
+   */
+  applyStrictFormattingRules(text) {
+    let formatted = text
+    
+    // 🔴 REGLA 1: Emojis SIEMPRE separados del texto con un espacio
+    formatted = formatted.replace(/([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌🚨🏆👋🔄😊🤝])/g, '$1 $2')
+    formatted = formatted.replace(/([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌🚨🏆👋🔄😊🤝])([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '$1 $2')
+    
+    // 🔴 REGLA 2: Negritas SIEMPRE seguidas de espacio si hay texto después
+    formatted = formatted.replace(/\*\*([^*]+)\*\*([a-záéíóúüñA-ZÁÉÍÓÚÜÑ])/g, '**$1** $2')
+    
+    // 🔴 REGLA 3: Títulos numerados SIEMPRE con formato: **N. Título:**
+    formatted = formatted.replace(/^(\d+)\.\s*([^\n]+?)\s*:?\s*$/gm, '**$1. $2:**')
+    
+    // 🔴 REGLA 4: Viñetas SIEMPRE con • y espacio
+    formatted = formatted.replace(/^\s*[-*+▪▫✦◦]\s*/gm, '• ')
+    
+    // 🔴 REGLA 5: Subtítulos SIEMPRE con formato: **Texto:**
+    formatted = formatted.replace(/^([A-ZÁÉÍÓÚÜÑ][^:\n]{5,50})\s*:?\s*$/gm, '**$1:**')
+    
+    return formatted
+  }
+
+  /**
+   * 🔍 VALIDACIÓN FINAL - ASEGURAR CUMPLIMIENTO ESTÉTICO
+   * Esta función verifica que se cumplan TODAS las reglas estéticas
+   */
+  ensureAestheticCompliance(text) {
+    let compliant = text
+    
+    // ✅ VERIFICACIÓN 1: Separación adecuada entre secciones
+    compliant = compliant.replace(/(\*\*\d+\.[^:]+:\*\*)([^\n])/g, '$1\n\n$2')
+    
+    // ✅ VERIFICACIÓN 2: Espaciado consistente en listas
+    compliant = compliant.replace(/^•([^\s])/gm, '• $1')
+    
+    // ✅ VERIFICACIÓN 3: Eliminar espacios al inicio de líneas
+    compliant = compliant.replace(/^[ \t]+/gm, '')
+    
+    // ✅ VERIFICACIÓN 4: Máximo 2 saltos de línea consecutivos
+    compliant = compliant.replace(/\n{3,}/g, '\n\n')
+    
+    // ✅ VERIFICACIÓN 5: Eliminar espacios al final de líneas
+    compliant = compliant.replace(/[ \t]+$/gm, '')
+    
+    // ✅ VERIFICACIÓN 6: Asegurar espacios después de emojis en cualquier contexto
+    compliant = compliant.replace(/([🌟🎯📊💼🏢🌍💰📈🔍✅❌⚠️💡📝🚀🎉])([a-zA-Z0-9ÁÉÍÓÚáéíóúüñ])/g, '$1 $2')
+    
+    // ✅ VERIFICACIÓN 7: Separación visual entre diferentes tipos de contenido
+    compliant = compliant.replace(/(\*\*[^*]+:\*\*)\n(•)/g, '$1\n\n$2')
+    
+    // ✅ VERIFICACIÓN 8: Corregir cualquier emoji pegado que se haya escapado
+    compliant = compliant.replace(/([a-záéíóúüñA-ZÁÉÍÓÚÜÑ0-9])([🏢📊🏠🌍🛡️⚖️💰💱🔍📋🚀✅❌⚠️📝💡🎯📄🔹▫️✦•📌🚨🏆👋🔄😊🤝🌟💼📈🎉])/g, '$1 $2')
+    
+    return compliant.trim()
   }
 }
 
