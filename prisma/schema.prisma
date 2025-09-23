@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  phoneNumber String   @unique  // 🔄 CAMBIADO: phoneNumber en lugar de phone
+  
+  // 🆕 NUEVOS CAMPOS para compatibilidad con ClientService
+  isNameConfirmed Boolean  @default(false)
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+  messageCount Int     @default(0)
+  status      String   @default("new")  // 'new', 'active', 'vip'
+  topics      String   @default("[]")   // JSON array como string
+  preferences String   @default("{}")   // JSON object como string
+  
+  // 🔄 CAMPOS ANTIGUOS (mantener para compatibilidad)
+  phone       String?  @unique  // Opcional para migración
+  expiryDate  DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lastActivity DateTime?
+  
+  // Notification tracking
+  reminderSent Boolean  @default(false)
+  expiredNotificationSent Boolean @default(false)
+  
+  // 🆕 CAMPOS VIP
+  vipSince    DateTime?
+
+  @@map("clients")
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  clientId  String
+  phone     String
+  message   String
+  response  String?
+  metadata  String?  // JSON metadata for processing info
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("conversations")
+}
+
+model SystemSettings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  
+  @@map("system_settings")
+}
