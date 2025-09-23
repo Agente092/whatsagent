@@ -1,0 +1,80 @@
+# Render Blueprint para despliegue automático
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Backend Service
+  - type: web
+    name: whatsapp-advisor-backend
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npx prisma generate
+    startCommand: npx prisma db push && npm run db:init && node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: GEMINI_API_KEY_1
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_2
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_3
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_4
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_5
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_6
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_7
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_8
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_9
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_10
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_11
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_12
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_13
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_14
+        sync: false # Configurar manualmente
+      - key: GEMINI_API_KEY_15
+        sync: false # Configurar manualmente
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@advisor.com
+      - key: ADMIN_PASSWORD
+        sync: false # Configurar manualmente
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        value: "postgresql://" # Se configurará automáticamente por PostgreSQL
+
+  # Frontend Service (Web Service - CORREGIDO)
+  - type: web
+    name: whatsagent
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: node .next/standalone/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXTAUTH_URL
+        value: https://grupohibrida.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        value: https://fitpro-s1ct.onrender.com
+
+# Database (Opcional - Solo si quieres PostgreSQL en el futuro)
+# databases:
+#   - name: whatsapp-advisor-db
+#     databaseName: whatsapp_advisor
+#     user: advisor_user
+#     plan: starter
