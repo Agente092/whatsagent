@@ -1,0 +1,47 @@
+# Docker Compose para Haystack 100% GRATUITO
+version: '3.8'
+
+services:
+  # Vector Database GRATUITA
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_free
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+    restart: unless-stopped
+    # COSTO: $0 - Completamente gratis
+
+  # Haystack API Service GRATUITO
+  haystack-api:
+    build:
+      context: ./haystack-service
+      dockerfile: Dockerfile
+    container_name: haystack_free
+    ports:
+      - "8001:8000"
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+    depends_on:
+      - qdrant
+    volumes:
+      - ./models:/app/models  # Cache de modelos local
+    restart: unless-stopped
+    # COSTO: $0 - Usa modelos gratuitos
+
+  # Tu aplicación Node.js actual (sin cambios)
+  node-app:
+    build: .
+    container_name: node_app
+    ports:
+      - "3001:3001"
+    environment:
+      - HAYSTACK_ENDPOINT=http://haystack-api:8000
+    depends_on:
+      - haystack-api
+    # COSTO: $0 - Tu servidor actual
